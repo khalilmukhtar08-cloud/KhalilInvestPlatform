@@ -3,18 +3,27 @@ import { createServer, type Server } from "http";
 import passport from "passport";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
+import { emailService } from "./email";
 import { 
   insertUserSchema, 
   insertInvestmentSchema,
   insertPropertySchema,
   insertProductSchema,
   insertPostSchema,
+  insertReferralSchema,
+  insertAffiliateSchema,
+  insertAffiliateSaleSchema,
+  insertSocialConnectionSchema,
+  insertEmailNotificationSchema,
+  insertUserPreferencesSchema,
   type User 
 } from "@shared/schema";
 
+import type { User as SchemaUser } from "@shared/schema";
+
 declare global {
   namespace Express {
-    interface User extends import("@shared/schema").User {}
+    interface User extends SchemaUser {}
   }
 }
 
@@ -170,8 +179,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         startDate: validatedData.startDate,
         endDate: validatedData.endDate,
         status: "pending",
-        commission,
-      });
+        commission: commission,
+      } as any);
       res.status(201).json({ investment });
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Failed to create investment" });
@@ -395,8 +404,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         image: validatedData.image,
         stock: validatedData.stock,
         status: "pending",
-        commission,
-      });
+        commission: commission,
+      } as any);
       res.status(201).json({ product });
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Failed to create product" });
@@ -573,6 +582,440 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ settings: updated });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to update settings" });
+    }
+  });
+
+  app.get("/api/referrals", isAuthenticated, async (req, res) => {
+    try {
+      const referrals = await storage.getReferralsByReferrer(req.user!.id);
+      res.json({ referrals });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch referrals" });
+    }
+  });
+
+  app.get("/api/referrals/:code", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const referral = await storage.getReferralByCode(code);
+      res.json({ referral });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch referral" });
+    }
+  });
+
+  app.post("/api/referrals", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertReferralSchema.parse(req.body);
+      
+      const existing = await storage.getReferralByCode(validatedData.code);
+      if (existing) {
+        return res.status(400).json({ message: "Referral code already exists" });
+      }
+
+      const settings = await storage.getSettings();
+      const reward = parseFloat(settings?.referralReward || "10.00");
+
+      const referral = await storage.createReferral({
+        ...validatedData,
+        reward: reward.toString(),
+      } as any);
+
+      const referrer = await storage.getUser(validatedData.referrerId);
+      if (referrer) {
+        await emailService.sendReferralReward(referrer.email, referrer.name, reward);
+      }
+
+      res.status(201).json({ referral });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create referral" });
+    }
+  });
+
+  app.patch("/api/referrals/:id/pay", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.markReferralPaid(id);
+      res.json({ message: "Referral marked as paid" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update referral" });
+    }
+  });
+
+  app.delete("/api/referrals/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteReferral(id);
+      res.json({ message: "Referral deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete referral" });
+    }
+  });
+
+  app.get("/api/affiliates", isAdmin, async (_req, res) => {
+    try {
+      const affiliates = await storage.getAllAffiliates();
+      res.json({ affiliates });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch affiliates" });
+    }
+  });
+
+  app.get("/api/affiliates/me", isAuthenticated, async (req, res) => {
+    try {
+      const affiliate = await storage.getAffiliateByUserId(req.user!.id);
+      res.json({ affiliate });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch affiliate" });
+    }
+  });
+
+  app.get("/api/affiliates/:code/verify", async (req, res) => {
+    try {
+      const { code } = req.params;
+      const affiliate = await storage.getAffiliateByCode(code);
+      res.json({ affiliate, valid: !!affiliate && affiliate.isActive });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to verify affiliate" });
+    }
+  });
+
+  app.post("/api/affiliates", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertAffiliateSchema.parse(req.body);
+      
+      const existing = await storage.getAffiliateByUserId(req.user!.id);
+      if (existing) {
+        return res.status(400).json({ message: "User already has an affiliate account" });
+      }
+
+      const codeExists = await storage.getAffiliateByCode(validatedData.affiliateCode);
+      if (codeExists) {
+        return res.status(400).json({ message: "Affiliate code already exists" });
+      }
+
+      const affiliate = await storage.createAffiliate({
+        userId: req.user!.id,
+        affiliateCode: validatedData.affiliateCode,
+        isActive: true,
+      });
+
+      res.status(201).json({ affiliate });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create affiliate" });
+    }
+  });
+
+  app.patch("/api/affiliates/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { isActive } = req.body;
+      const updated = await storage.updateAffiliate(id, { isActive });
+      res.json({ affiliate: updated });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update affiliate" });
+    }
+  });
+
+  app.delete("/api/affiliates/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteAffiliate(id);
+      res.json({ message: "Affiliate deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete affiliate" });
+    }
+  });
+
+  app.get("/api/affiliate-sales", isAuthenticated, async (req, res) => {
+    try {
+      const affiliate = await storage.getAffiliateByUserId(req.user!.id);
+      if (!affiliate) {
+        return res.json({ sales: [] });
+      }
+      const sales = await storage.getSalesByAffiliate(affiliate.id);
+      res.json({ sales });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch sales" });
+    }
+  });
+
+  app.post("/api/affiliate-sales", async (req, res) => {
+    try {
+      const validatedData = insertAffiliateSaleSchema.parse(req.body);
+      
+      const affiliate = await storage.getAffiliate(validatedData.affiliateId);
+      if (!affiliate || !affiliate.isActive) {
+        return res.status(400).json({ message: "Invalid or inactive affiliate" });
+      }
+
+      const sale = await storage.createAffiliateSale(validatedData);
+
+      const user = await storage.getUser(affiliate.userId);
+      const product = await storage.getProduct(validatedData.productId);
+      
+      if (user && product) {
+        await emailService.sendAffiliateCommission(
+          user.email,
+          user.name,
+          parseFloat(validatedData.commission.toString()),
+          product.name
+        );
+      }
+
+      res.status(201).json({ sale });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to record sale" });
+    }
+  });
+
+  app.patch("/api/affiliate-sales/:id/pay", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.markSalePaid(id);
+      res.json({ message: "Sale marked as paid" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update sale" });
+    }
+  });
+
+  app.get("/api/social-connections", isAuthenticated, async (req, res) => {
+    try {
+      const connections = await storage.getSocialConnectionsByUser(req.user!.id);
+      res.json({ connections });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch connections" });
+    }
+  });
+
+  app.get("/api/social-connections/all", isAdmin, async (_req, res) => {
+    try {
+      const connections = await storage.getAllActiveSocialConnections();
+      res.json({ connections });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch connections" });
+    }
+  });
+
+  app.post("/api/social-connections", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertSocialConnectionSchema.parse(req.body);
+      
+      const connection = await storage.createSocialConnection({
+        ...validatedData,
+        userId: req.user!.id,
+      });
+
+      res.status(201).json({ connection });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create connection" });
+    }
+  });
+
+  app.patch("/api/social-connections/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getSocialConnection(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "Connection not found" });
+      }
+      
+      if (req.user!.role !== "admin" && existing.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const updated = await storage.updateSocialConnection(id, req.body);
+      res.json({ connection: updated });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update connection" });
+    }
+  });
+
+  app.delete("/api/social-connections/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getSocialConnection(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "Connection not found" });
+      }
+      
+      if (req.user!.role !== "admin" && existing.userId !== req.user!.id) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      await storage.deleteSocialConnection(id);
+      res.json({ message: "Connection deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete connection" });
+    }
+  });
+
+  app.post("/api/admin/post-to-all", isAdmin, async (req, res) => {
+    try {
+      const { caption, platforms } = req.body;
+      
+      if (!caption || !platforms || platforms.length === 0) {
+        return res.status(400).json({ message: "Caption and platforms are required" });
+      }
+
+      const allConnections = await storage.getAllActiveSocialConnections();
+      
+      const results = {
+        total: 0,
+        successful: 0,
+        failed: 0,
+        details: [] as any[],
+      };
+
+      const userConnectionsMap = new Map<string, any[]>();
+      allConnections.forEach(conn => {
+        if (!userConnectionsMap.has(conn.userId)) {
+          userConnectionsMap.set(conn.userId, []);
+        }
+        userConnectionsMap.get(conn.userId)?.push(conn);
+      });
+
+      for (const [userId, userConnections] of Array.from(userConnectionsMap.entries())) {
+        try {
+          const userPlatforms = platforms.filter((p: string) => 
+            userConnections.some((c: any) => c.platform === p)
+          );
+
+          if (userPlatforms.length > 0) {
+            const post = await storage.createPost({
+              userId,
+              caption,
+              platforms: userPlatforms,
+              status: "published",
+            });
+
+            results.total++;
+            results.successful++;
+            results.details.push({
+              userId,
+              platforms: userPlatforms,
+              postId: post.id,
+              status: "success",
+            });
+          }
+        } catch (error: any) {
+          results.total++;
+          results.failed++;
+          results.details.push({
+            userId,
+            status: "failed",
+            error: error.message,
+          });
+        }
+      }
+
+      res.json({
+        message: "Mass posting completed",
+        results,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to post to all users" });
+    }
+  });
+
+  app.get("/api/email-notifications", isAdmin, async (_req, res) => {
+    try {
+      const notifications = await storage.getAllEmailNotifications();
+      res.json({ notifications });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch notifications" });
+    }
+  });
+
+  app.post("/api/email-notifications/send", isAdmin, async (req, res) => {
+    try {
+      const { subject, body, recipients } = req.body;
+
+      if (!subject || !body || !recipients || recipients.length === 0) {
+        return res.status(400).json({ message: "Subject, body, and recipients are required" });
+      }
+
+      const results = await emailService.sendBulkEmail(
+        recipients,
+        subject,
+        body,
+        req.user!.id
+      );
+
+      res.json({
+        message: "Bulk email sent",
+        results,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to send emails" });
+    }
+  });
+
+  app.post("/api/email-notifications/send-to-all-users", isAdmin, async (req, res) => {
+    try {
+      const { subject, body } = req.body;
+
+      if (!subject || !body) {
+        return res.status(400).json({ message: "Subject and body are required" });
+      }
+
+      const allUsers = await storage.getAllUsers();
+      const recipients = allUsers.map(user => user.email);
+
+      const results = await emailService.sendBulkEmail(
+        recipients,
+        subject,
+        body,
+        req.user!.id
+      );
+
+      res.json({
+        message: "Email sent to all users",
+        results,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to send emails" });
+    }
+  });
+
+  app.get("/api/preferences", isAuthenticated, async (req, res) => {
+    try {
+      let preferences = await storage.getUserPreferences(req.user!.id);
+      
+      if (!preferences) {
+        preferences = await storage.createUserPreferences({
+          userId: req.user!.id,
+          language: "en",
+          timezone: "UTC",
+          emailNotifications: true,
+        });
+      }
+
+      res.json({ preferences });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch preferences" });
+    }
+  });
+
+  app.patch("/api/preferences", isAuthenticated, async (req, res) => {
+    try {
+      const existing = await storage.getUserPreferences(req.user!.id);
+      
+      let updated;
+      if (!existing) {
+        updated = await storage.createUserPreferences({
+          userId: req.user!.id,
+          ...req.body,
+        });
+      } else {
+        updated = await storage.updateUserPreferences(req.user!.id, req.body);
+      }
+
+      res.json({ preferences: updated });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update preferences" });
     }
   });
 
