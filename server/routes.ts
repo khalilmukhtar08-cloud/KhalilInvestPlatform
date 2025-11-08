@@ -4,6 +4,7 @@ import passport from "passport";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { emailService } from "./email";
+import { generateReferralCode, generateAffiliateCode } from "./utils";
 import { 
   insertUserSchema, 
   insertInvestmentSchema,
@@ -44,7 +45,8 @@ function isAdmin(req: Request, res: Response, next: NextFunction) {
 export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/auth/register", async (req, res, next) => {
     try {
-      const validatedData = insertUserSchema.parse(req.body);
+      const { referralCode, ...userData } = req.body;
+      const validatedData = insertUserSchema.parse(userData);
       
       const existingUser = await storage.getUserByEmail(validatedData.email);
       if (existingUser) {
@@ -59,6 +61,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: "user",
         isBlocked: false,
       });
+
+      if (referralCode) {
+        try {
+          const existingReferralCode = await storage.getReferralByCode(referralCode);
+          if (existingReferralCode) {
+            return res.status(400).json({ message: "This referral code has already been used" });
+          }
+
+          const referrer = await storage.getUser(referralCode.split('-')[0]);
+          if (referrer) {
+            const settings = await storage.getSettings();
+            const reward = parseFloat(settings?.referralReward || "10.00");
+
+            await storage.createReferral({
+              referrerId: referrer.id,
+              referredId: newUser.id,
+              code: referralCode,
+              reward: reward.toString(),
+            } as any);
+
+            await emailService.sendReferralReward(referrer.email, referrer.name, reward);
+          }
+        } catch (error) {
+          console.error("Error processing referral:", error);
+        }
+      }
+
+      await emailService.sendWelcomeEmail(newUser.email, newUser.name);
 
       req.login(newUser, (err) => {
         if (err) {
@@ -591,6 +621,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ referrals });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to fetch referrals" });
+    }
+  });
+
+  app.get("/api/referrals/stats/dashboard", isAuthenticated, async (req, res) => {
+    try {
+      const referrals = await storage.getReferralsByReferrer(req.user!.id);
+      
+      const totalReferrals = referrals.length;
+      const totalRewards = referrals.reduce((sum, ref) => sum + parseFloat(ref.reward), 0);
+      const paidRewards = referrals.filter(ref => ref.isPaid).reduce((sum, ref) => sum + parseFloat(ref.reward), 0);
+      const pendingRewards = totalRewards - paidRewards;
+
+      res.json({
+        totalReferrals,
+        totalRewards: totalRewards.toFixed(2),
+        paidRewards: paidRewards.toFixed(2),
+        pendingRewards: pendingRewards.toFixed(2),
+        recentReferrals: referrals.slice(0, 5),
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch stats" });
+    }
+  });
+
+  app.post("/api/referrals/generate-code", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const userName = req.user!.name;
+      
+      let referralCode = `${userId}-${generateReferralCode(userName)}`;
+      
+      let codeExists = await storage.getReferralByCode(referralCode);
+      while (codeExists) {
+        referralCode = `${userId}-${generateReferralCode(userName)}`;
+        codeExists = await storage.getReferralByCode(referralCode);
+      }
+
+      res.json({ 
+        referralCode,
+        referralLink: `${req.protocol}://${req.get('host')}/register?ref=${referralCode}`
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to generate code" });
     }
   });
 
