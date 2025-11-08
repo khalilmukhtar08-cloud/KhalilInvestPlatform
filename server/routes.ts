@@ -64,24 +64,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (referralCode) {
         try {
-          const existingReferralCode = await storage.getReferralByCode(referralCode);
-          if (existingReferralCode) {
-            return res.status(400).json({ message: "This referral code has already been used" });
-          }
+          const referrer = await storage.getUserByReferralCode(referralCode);
+          if (referrer && referrer.id !== newUser.id) {
+            const existingReferrals = await storage.getReferralsByReferrer(referrer.id);
+            const alreadyReferred = existingReferrals.find(r => r.referredId === newUser.id);
+            
+            if (!alreadyReferred) {
+              const settings = await storage.getSettings();
+              const reward = parseFloat(settings?.referralReward || "10.00");
 
-          const referrer = await storage.getUser(referralCode.split('-')[0]);
-          if (referrer) {
-            const settings = await storage.getSettings();
-            const reward = parseFloat(settings?.referralReward || "10.00");
+              await storage.createReferral({
+                referrerId: referrer.id,
+                referredId: newUser.id,
+                code: referralCode,
+                reward: reward.toString(),
+              } as any);
 
-            await storage.createReferral({
-              referrerId: referrer.id,
-              referredId: newUser.id,
-              code: referralCode,
-              reward: reward.toString(),
-            } as any);
-
-            await emailService.sendReferralReward(referrer.email, referrer.name, reward);
+              await emailService.sendReferralReward(referrer.email, referrer.name, reward);
+            }
           }
         } catch (error) {
           console.error("Error processing referral:", error);
@@ -650,13 +650,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user!.id;
       const userName = req.user!.name;
       
-      let referralCode = `${userId}-${generateReferralCode(userName)}`;
-      
-      let codeExists = await storage.getReferralByCode(referralCode);
-      while (codeExists) {
-        referralCode = `${userId}-${generateReferralCode(userName)}`;
-        codeExists = await storage.getReferralByCode(referralCode);
+      if (req.user!.referralCode) {
+        return res.json({ 
+          referralCode: req.user!.referralCode,
+          referralLink: `${req.protocol}://${req.get('host')}/register?ref=${req.user!.referralCode}`
+        });
       }
+      
+      let referralCode = generateReferralCode(userName);
+      let codeExists = await storage.getUserByReferralCode(referralCode);
+      
+      while (codeExists) {
+        referralCode = generateReferralCode(userName);
+        codeExists = await storage.getUserByReferralCode(referralCode);
+      }
+
+      await storage.updateUser(userId, { referralCode });
 
       res.json({ 
         referralCode,

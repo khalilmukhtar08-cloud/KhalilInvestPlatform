@@ -20,12 +20,14 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: userRoleEnum("role").notNull().default("user"),
   isBlocked: boolean("is_blocked").notNull().default(false),
+  referralCode: text("referral_code").unique(),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   joinedAt: true,
+  referralCode: true,
 }).extend({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
@@ -182,11 +184,13 @@ export const referrals = pgTable("referrals", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   referrerId: varchar("referrer_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   referredId: varchar("referred_id").notNull().references(() => users.id, { onDelete: "cascade" }),
-  code: text("code").notNull().unique(),
+  code: text("code").notNull(),
   reward: decimal("reward", { precision: 10, scale: 2 }).notNull().default("0"),
   isPaid: boolean("is_paid").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+}, (table) => ({
+  uniqueReferral: sql`UNIQUE (${table.referrerId}, ${table.referredId})`,
+}));
 
 export const insertReferralSchema = createInsertSchema(referrals).omit({
   id: true,
