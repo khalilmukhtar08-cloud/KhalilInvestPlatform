@@ -6,6 +6,12 @@ import {
   products,
   posts,
   settings,
+  referrals,
+  affiliates,
+  affiliateSales,
+  socialConnections,
+  emailNotifications,
+  userPreferences,
   type User,
   type InsertUser,
   type Investment,
@@ -18,6 +24,18 @@ import {
   type InsertPost,
   type Settings,
   type InsertSettings,
+  type Referral,
+  type InsertReferral,
+  type Affiliate,
+  type InsertAffiliate,
+  type AffiliateSale,
+  type InsertAffiliateSale,
+  type SocialConnection,
+  type InsertSocialConnection,
+  type EmailNotification,
+  type InsertEmailNotification,
+  type UserPreferences,
+  type InsertUserPreferences,
 } from "@shared/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 
@@ -70,6 +88,48 @@ export interface IStorage {
   // Settings
   getSettings(): Promise<Settings | undefined>;
   updateSettings(data: Partial<Settings>): Promise<Settings>;
+
+  // Referrals
+  getReferral(id: string): Promise<Referral | undefined>;
+  getReferralByCode(code: string): Promise<Referral | undefined>;
+  getReferralsByReferrer(referrerId: string): Promise<Referral[]>;
+  createReferral(referral: InsertReferral): Promise<Referral>;
+  updateReferral(id: string, data: Partial<Referral>): Promise<Referral | undefined>;
+  markReferralPaid(id: string): Promise<void>;
+  deleteReferral(id: string): Promise<void>;
+
+  // Affiliates
+  getAffiliate(id: string): Promise<Affiliate | undefined>;
+  getAffiliateByUserId(userId: string): Promise<Affiliate | undefined>;
+  getAffiliateByCode(code: string): Promise<Affiliate | undefined>;
+  getAllAffiliates(): Promise<Affiliate[]>;
+  createAffiliate(affiliate: InsertAffiliate): Promise<Affiliate>;
+  updateAffiliate(id: string, data: Partial<Affiliate>): Promise<Affiliate | undefined>;
+  deleteAffiliate(id: string): Promise<void>;
+
+  // Affiliate Sales
+  getAffiliateSale(id: string): Promise<AffiliateSale | undefined>;
+  getSalesByAffiliate(affiliateId: string): Promise<AffiliateSale[]>;
+  createAffiliateSale(sale: InsertAffiliateSale): Promise<AffiliateSale>;
+  markSalePaid(id: string): Promise<void>;
+
+  // Social Connections
+  getSocialConnection(id: string): Promise<SocialConnection | undefined>;
+  getSocialConnectionsByUser(userId: string): Promise<SocialConnection[]>;
+  getAllActiveSocialConnections(): Promise<SocialConnection[]>;
+  createSocialConnection(connection: InsertSocialConnection): Promise<SocialConnection>;
+  updateSocialConnection(id: string, data: Partial<SocialConnection>): Promise<SocialConnection | undefined>;
+  deleteSocialConnection(id: string): Promise<void>;
+
+  // Email Notifications
+  getEmailNotification(id: string): Promise<EmailNotification | undefined>;
+  getAllEmailNotifications(): Promise<EmailNotification[]>;
+  createEmailNotification(notification: InsertEmailNotification): Promise<EmailNotification>;
+
+  // User Preferences
+  getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
+  createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
+  updateUserPreferences(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -265,6 +325,166 @@ export class DatabaseStorage implements IStorage {
       .set({ ...data, updatedAt: new Date() })
       .where(eq(settings.id, existing.id))
       .returning();
+    return updated;
+  }
+
+  // Referrals
+  async getReferral(id: string): Promise<Referral | undefined> {
+    const [referral] = await db.select().from(referrals).where(eq(referrals.id, id)).limit(1);
+    return referral;
+  }
+
+  async getReferralByCode(code: string): Promise<Referral | undefined> {
+    const [referral] = await db.select().from(referrals).where(eq(referrals.code, code)).limit(1);
+    return referral;
+  }
+
+  async getReferralsByReferrer(referrerId: string): Promise<Referral[]> {
+    return db.select().from(referrals).where(eq(referrals.referrerId, referrerId)).orderBy(desc(referrals.createdAt));
+  }
+
+  async createReferral(referral: InsertReferral): Promise<Referral> {
+    const [newReferral] = await db.insert(referrals).values(referral).returning();
+    return newReferral;
+  }
+
+  async updateReferral(id: string, data: Partial<Referral>): Promise<Referral | undefined> {
+    const [updated] = await db.update(referrals).set(data).where(eq(referrals.id, id)).returning();
+    return updated;
+  }
+
+  async markReferralPaid(id: string): Promise<void> {
+    await db.update(referrals).set({ isPaid: true }).where(eq(referrals.id, id));
+  }
+
+  async deleteReferral(id: string): Promise<void> {
+    await db.delete(referrals).where(eq(referrals.id, id));
+  }
+
+  // Affiliates
+  async getAffiliate(id: string): Promise<Affiliate | undefined> {
+    const [affiliate] = await db.select().from(affiliates).where(eq(affiliates.id, id)).limit(1);
+    return affiliate;
+  }
+
+  async getAffiliateByUserId(userId: string): Promise<Affiliate | undefined> {
+    const [affiliate] = await db.select().from(affiliates).where(eq(affiliates.userId, userId)).limit(1);
+    return affiliate;
+  }
+
+  async getAffiliateByCode(code: string): Promise<Affiliate | undefined> {
+    const [affiliate] = await db.select().from(affiliates).where(eq(affiliates.affiliateCode, code)).limit(1);
+    return affiliate;
+  }
+
+  async getAllAffiliates(): Promise<Affiliate[]> {
+    return db.select().from(affiliates).orderBy(desc(affiliates.createdAt));
+  }
+
+  async createAffiliate(affiliate: InsertAffiliate): Promise<Affiliate> {
+    const [newAffiliate] = await db.insert(affiliates).values(affiliate).returning();
+    return newAffiliate;
+  }
+
+  async updateAffiliate(id: string, data: Partial<Affiliate>): Promise<Affiliate | undefined> {
+    const [updated] = await db.update(affiliates).set(data).where(eq(affiliates.id, id)).returning();
+    return updated;
+  }
+
+  async deleteAffiliate(id: string): Promise<void> {
+    await db.delete(affiliates).where(eq(affiliates.id, id));
+  }
+
+  // Affiliate Sales
+  async getAffiliateSale(id: string): Promise<AffiliateSale | undefined> {
+    const [sale] = await db.select().from(affiliateSales).where(eq(affiliateSales.id, id)).limit(1);
+    return sale;
+  }
+
+  async getSalesByAffiliate(affiliateId: string): Promise<AffiliateSale[]> {
+    return db.select().from(affiliateSales).where(eq(affiliateSales.affiliateId, affiliateId)).orderBy(desc(affiliateSales.createdAt));
+  }
+
+  async createAffiliateSale(sale: InsertAffiliateSale): Promise<AffiliateSale> {
+    const [newSale] = await db.insert(affiliateSales).values({
+      ...sale,
+      amount: sale.amount.toString(),
+      commission: sale.commission.toString(),
+    }).returning();
+    
+    const affiliate = await this.getAffiliate(sale.affiliateId);
+    if (affiliate) {
+      const newTotal = parseFloat(affiliate.totalSales) + parseFloat(sale.amount.toString());
+      const newCommission = parseFloat(affiliate.totalCommission) + parseFloat(sale.commission.toString());
+      await this.updateAffiliate(sale.affiliateId, {
+        totalSales: newTotal.toString(),
+        totalCommission: newCommission.toString(),
+      });
+    }
+    
+    return newSale;
+  }
+
+  async markSalePaid(id: string): Promise<void> {
+    await db.update(affiliateSales).set({ isPaid: true }).where(eq(affiliateSales.id, id));
+  }
+
+  // Social Connections
+  async getSocialConnection(id: string): Promise<SocialConnection | undefined> {
+    const [connection] = await db.select().from(socialConnections).where(eq(socialConnections.id, id)).limit(1);
+    return connection;
+  }
+
+  async getSocialConnectionsByUser(userId: string): Promise<SocialConnection[]> {
+    return db.select().from(socialConnections).where(eq(socialConnections.userId, userId)).orderBy(desc(socialConnections.createdAt));
+  }
+
+  async getAllActiveSocialConnections(): Promise<SocialConnection[]> {
+    return db.select().from(socialConnections).where(eq(socialConnections.isActive, true)).orderBy(desc(socialConnections.createdAt));
+  }
+
+  async createSocialConnection(connection: InsertSocialConnection): Promise<SocialConnection> {
+    const [newConnection] = await db.insert(socialConnections).values(connection).returning();
+    return newConnection;
+  }
+
+  async updateSocialConnection(id: string, data: Partial<SocialConnection>): Promise<SocialConnection | undefined> {
+    const [updated] = await db.update(socialConnections).set({ ...data, updatedAt: new Date() }).where(eq(socialConnections.id, id)).returning();
+    return updated;
+  }
+
+  async deleteSocialConnection(id: string): Promise<void> {
+    await db.delete(socialConnections).where(eq(socialConnections.id, id));
+  }
+
+  // Email Notifications
+  async getEmailNotification(id: string): Promise<EmailNotification | undefined> {
+    const [notification] = await db.select().from(emailNotifications).where(eq(emailNotifications.id, id)).limit(1);
+    return notification;
+  }
+
+  async getAllEmailNotifications(): Promise<EmailNotification[]> {
+    return db.select().from(emailNotifications).orderBy(desc(emailNotifications.sentAt));
+  }
+
+  async createEmailNotification(notification: InsertEmailNotification): Promise<EmailNotification> {
+    const [newNotification] = await db.insert(emailNotifications).values(notification).returning();
+    return newNotification;
+  }
+
+  // User Preferences
+  async getUserPreferences(userId: string): Promise<UserPreferences | undefined> {
+    const [preferences] = await db.select().from(userPreferences).where(eq(userPreferences.userId, userId)).limit(1);
+    return preferences;
+  }
+
+  async createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences> {
+    const [newPreferences] = await db.insert(userPreferences).values(preferences).returning();
+    return newPreferences;
+  }
+
+  async updateUserPreferences(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences | undefined> {
+    const [updated] = await db.update(userPreferences).set({ ...data, updatedAt: new Date() }).where(eq(userPreferences.userId, userId)).returning();
     return updated;
   }
 }
