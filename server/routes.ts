@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { emailService } from "./email";
 import { generateReferralCode, generateAffiliateCode } from "./utils";
+import { InsufficientFundsError, UserNotFoundError } from "./errors";
 import { 
   insertUserSchema, 
   insertInvestmentSchema,
@@ -17,6 +18,7 @@ import {
   insertSocialConnectionSchema,
   insertEmailNotificationSchema,
   insertUserPreferencesSchema,
+  insertTransactionSchema,
   type User 
 } from "@shared/schema";
 
@@ -1098,6 +1100,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ preferences: updated });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to update preferences" });
+    }
+  });
+
+  app.get("/api/wallet/balance", isAuthenticated, async (req, res) => {
+    try {
+      const balance = await storage.getUserBalance(req.user!.id);
+      res.json({ balance });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch balance" });
+    }
+  });
+
+  app.get("/api/wallet/transactions", isAuthenticated, async (req, res) => {
+    try {
+      const transactions = await storage.getTransactionsByUser(req.user!.id);
+      res.json({ transactions });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch transactions" });
+    }
+  });
+
+  app.post("/api/wallet/deposit", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertTransactionSchema.omit({ userId: true, type: true, status: true }).parse(req.body);
+      
+      const transaction = await storage.deposit(
+        req.user!.id, 
+        validatedData.amount, 
+        validatedData.description || undefined
+      );
+      const balance = await storage.getUserBalance(req.user!.id);
+      
+      res.status(201).json({ transaction, balance });
+    } catch (error: any) {
+      if (error instanceof UserNotFoundError) {
+        return res.status(404).json({ message: error.message });
+      }
+      res.status(400).json({ message: error.message || "Failed to deposit" });
+    }
+  });
+
+  app.post("/api/wallet/withdraw", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertTransactionSchema.omit({ userId: true, type: true, status: true }).parse(req.body);
+      
+      const transaction = await storage.withdraw(
+        req.user!.id, 
+        validatedData.amount, 
+        validatedData.description || undefined
+      );
+      const balance = await storage.getUserBalance(req.user!.id);
+      
+      res.status(201).json({ transaction, balance });
+    } catch (error: any) {
+      if (error instanceof InsufficientFundsError) {
+        return res.status(409).json({ message: error.message });
+      }
+      if (error instanceof UserNotFoundError) {
+        return res.status(404).json({ message: error.message });
+      }
+      res.status(400).json({ message: error.message || "Failed to withdraw" });
     }
   });
 

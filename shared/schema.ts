@@ -11,6 +11,8 @@ export const propertyTypeEnum = pgEnum("property_type", ["residential", "commerc
 export const productStatusEnum = pgEnum("product_status", ["active", "pending", "flagged"]);
 export const postStatusEnum = pgEnum("post_status", ["draft", "scheduled", "published"]);
 export const platformEnum = pgEnum("platform", ["facebook", "instagram", "linkedin", "tiktok", "twitter"]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["deposit", "withdraw"]);
+export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "completed", "failed"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -20,6 +22,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: userRoleEnum("role").notNull().default("user"),
   isBlocked: boolean("is_blocked").notNull().default(false),
+  balance: decimal("balance", { precision: 12, scale: 2 }).notNull().default("0.00"),
   referralCode: text("referral_code").unique(),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
@@ -303,3 +306,24 @@ export const insertUserPreferencesSchema = createInsertSchema(userPreferences).o
 
 export type InsertUserPreferences = z.infer<typeof insertUserPreferencesSchema>;
 export type UserPreferences = typeof userPreferences.$inferSelect;
+
+// Transactions table
+export const transactions = pgTable("transactions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: transactionTypeEnum("type").notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  status: transactionStatusEnum("status").notNull().default("completed"),
+  description: text("description"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertTransactionSchema = createInsertSchema(transactions).omit({
+  id: true,
+  createdAt: true,
+}).extend({
+  amount: z.coerce.number().positive("Amount must be positive"),
+});
+
+export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
+export type Transaction = typeof transactions.$inferSelect;

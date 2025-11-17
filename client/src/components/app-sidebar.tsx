@@ -7,6 +7,7 @@ import {
   Users,
   Settings,
   LogOut,
+  Wallet,
 } from "lucide-react";
 import {
   Sidebar,
@@ -46,6 +47,11 @@ export function AppSidebar({
       title: "Dashboard",
       url: "/dashboard",
       icon: Home,
+    },
+    {
+      title: "Wallet",
+      url: "/dashboard/wallet",
+      icon: Wallet,
     },
     {
       title: "Investments",

@@ -12,6 +12,7 @@ import {
   socialConnections,
   emailNotifications,
   userPreferences,
+  transactions,
   type User,
   type InsertUser,
   type Investment,
@@ -36,8 +37,11 @@ import {
   type InsertEmailNotification,
   type UserPreferences,
   type InsertUserPreferences,
+  type Transaction,
+  type InsertTransaction,
 } from "@shared/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
+import { InsufficientFundsError, UserNotFoundError } from "./errors";
 
 export interface IStorage {
   // Users
@@ -131,6 +135,14 @@ export interface IStorage {
   getUserPreferences(userId: string): Promise<UserPreferences | undefined>;
   createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
   updateUserPreferences(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
+
+  // Transactions (Wallet)
+  getTransaction(id: string): Promise<Transaction | undefined>;
+  getTransactionsByUser(userId: string): Promise<Transaction[]>;
+  createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  getUserBalance(userId: string): Promise<string>;
+  deposit(userId: string, amount: number, description?: string): Promise<Transaction>;
+  withdraw(userId: string, amount: number, description?: string): Promise<Transaction>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -492,6 +504,83 @@ export class DatabaseStorage implements IStorage {
   async updateUserPreferences(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences | undefined> {
     const [updated] = await db.update(userPreferences).set({ ...data, updatedAt: new Date() }).where(eq(userPreferences.userId, userId)).returning();
     return updated;
+  }
+
+  // Transactions (Wallet)
+  async getTransaction(id: string): Promise<Transaction | undefined> {
+    const [transaction] = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
+    return transaction;
+  }
+
+  async getTransactionsByUser(userId: string): Promise<Transaction[]> {
+    return db.select().from(transactions).where(eq(transactions.userId, userId)).orderBy(desc(transactions.createdAt));
+  }
+
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const [newTransaction] = await db.insert(transactions).values({
+      ...transaction,
+      amount: transaction.amount.toString(),
+    }).returning();
+    return newTransaction;
+  }
+
+  async getUserBalance(userId: string): Promise<string> {
+    const user = await this.getUser(userId);
+    return user?.balance || "0.00";
+  }
+
+  async deposit(userId: string, amount: number, description?: string): Promise<Transaction> {
+    return await db.transaction(async (tx) => {
+      const [user] = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
+      
+      if (!user) {
+        throw new UserNotFoundError();
+      }
+
+      await tx.update(users)
+        .set({ balance: sql`${users.balance} + ${amount.toString()}` })
+        .where(eq(users.id, userId));
+
+      const [transaction] = await tx.insert(transactions).values({
+        userId,
+        type: "deposit",
+        amount: amount.toString(),
+        status: "completed",
+        description: description || "Deposit to wallet",
+      }).returning();
+
+      return transaction;
+    });
+  }
+
+  async withdraw(userId: string, amount: number, description?: string): Promise<Transaction> {
+    return await db.transaction(async (tx) {
+      const result = await tx.update(users)
+        .set({ balance: sql`${users.balance} - ${amount.toString()}` })
+        .where(and(
+          eq(users.id, userId),
+          sql`${users.balance}::numeric >= ${amount.toString()}::numeric`
+        ))
+        .returning({ id: users.id, balance: users.balance });
+
+      if (!result || result.length === 0 || !result[0]) {
+        const [user] = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
+        if (!user) {
+          throw new UserNotFoundError();
+        }
+        throw new InsufficientFundsError();
+      }
+
+      const [transaction] = await tx.insert(transactions).values({
+        userId,
+        type: "withdraw",
+        amount: amount.toString(),
+        status: "completed",
+        description: description || "Withdrawal from wallet",
+      }).returning();
+
+      return transaction;
+    });
   }
 }
 

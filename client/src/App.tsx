@@ -16,6 +16,7 @@ import UserInvestments from "@/pages/user-investments";
 import UserRealEstate from "@/pages/user-real-estate";
 import UserEcommerce from "@/pages/user-ecommerce";
 import UserSocial from "@/pages/user-social";
+import UserWallet from "@/pages/user-wallet";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminUsers from "@/pages/admin-users";
 import AdminInvestments from "@/pages/admin-investments";
@@ -33,6 +34,7 @@ type Page =
   | "dashboard/real-estate"
   | "dashboard/ecommerce"
   | "dashboard/social"
+  | "dashboard/wallet"
   | "admin"
   | "admin/users"
   | "admin/investments"
@@ -117,6 +119,8 @@ export default function App() {
         return <UserEcommerce />;
       case "dashboard/social":
         return <UserSocial />;
+      case "dashboard/wallet":
+        return <UserWallet />;
       case "admin":
         return <AdminDashboard />;
       case "admin/users":
