@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import logoImage from "@assets/generated_images/Khalil_Investment_logo_design_85d261a6.png";
+import logoImage from "@assets/khalil_investment_logo.jpg";
 
 interface AppSidebarProps {
   userRole: "admin" | "user";

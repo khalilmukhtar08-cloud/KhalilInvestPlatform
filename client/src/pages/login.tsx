@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
-import logoImage from "@assets/generated_images/Khalil_Investment_logo_design_85d261a6.png";
+import logoImage from "@assets/khalil_investment_logo.jpg";
 
 interface LoginProps {
   onLogin: (email: string, password: string) => void;

@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, Building2, ShoppingBag, Share2, Shield, Zap, Users } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import logoImage from "@assets/generated_images/Khalil_Investment_logo_design_85d261a6.png";
+import logoImage from "@assets/khalil_investment_logo.jpg";
 
 interface LandingProps {
   onNavigateToLogin: () => void;
@@ -82,8 +82,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
           <h1 className="text-5xl sm:text-6xl font-bold font-serif mb-6">
-            Your Complete
-            <span className="text-accent"> Investment Ecosystem</span>
+            <span className="text-accent">KHALIL INVESTMENT COMPANY</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
             Manage investments, real estate, e-commerce, and social media all in one powerful platform. 
