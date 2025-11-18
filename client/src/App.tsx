@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { queryClient } from "./lib/queryClient";
+import { useState, useEffect } from "react";
+import { queryClient, apiRequest } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
+import { useToast } from "@/hooks/use-toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -11,6 +12,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import VerifyEmail from "@/pages/verify-email";
 import UserDashboard from "@/pages/user-dashboard";
 import UserInvestments from "@/pages/user-investments";
 import UserRealEstate from "@/pages/user-real-estate";
@@ -28,7 +30,8 @@ import AdminSettings from "@/pages/admin-settings";
 type Page = 
   | "landing" 
   | "login" 
-  | "register" 
+  | "register"
+  | "verify-email"
   | "dashboard" 
   | "dashboard/investments"
   | "dashboard/real-estate"
@@ -45,37 +48,117 @@ type Page =
 
 type UserRole = "admin" | "user" | null;
 
-export default function App() {
-  //todo: remove mock functionality - replace with real authentication
+function AppContent() {
+  const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState<Page>("landing");
   const [currentUser, setCurrentUser] = useState<{
     role: UserRole;
     name: string;
     email: string;
   } | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (email: string, password: string) => {
-    console.log("Login:", { email, password });
-    //todo: remove mock functionality - check if admin credentials
-    if (email === "khalilmukhtar08@gmail.com" && password === "Asdfgh08@") {
-      setCurrentUser({ role: "admin", name: "Khalil Mukhtar", email });
-      setCurrentPage("admin");
-    } else {
-      setCurrentUser({ role: "user", name: "John Doe", email });
-      setCurrentPage("dashboard");
+  useEffect(() => {
+    checkAuthStatus();
+  }, []);
+
+  const checkAuthStatus = async () => {
+    try {
+      const response = await apiRequest('GET', '/api/auth/check');
+      const data = await response.json();
+      
+      if (data.user) {
+        setCurrentUser({
+          role: data.user.role === 'admin' ? 'admin' : 'user',
+          name: data.user.name,
+          email: data.user.email
+        });
+        
+        if (data.user.role === 'admin') {
+          setCurrentPage('admin');
+        } else {
+          setCurrentPage('dashboard');
+        }
+      }
+    } catch (error) {
     }
   };
 
-  const handleRegister = (name: string, email: string, password: string) => {
-    console.log("Register:", { name, email, password });
-    //todo: remove mock functionality - create user in database and send welcome email
-    setCurrentUser({ role: "user", name, email });
-    setCurrentPage("dashboard");
+  const handleLogin = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      const response = await apiRequest('POST', '/api/auth/login', { email, password });
+      const data = await response.json();
+      
+      if (data.user) {
+        setCurrentUser({
+          role: data.user.role === 'admin' ? 'admin' : 'user',
+          name: data.user.name,
+          email: data.user.email
+        });
+        
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${data.user.name}!`,
+        });
+        
+        if (data.user.role === 'admin') {
+          setCurrentPage('admin');
+        } else {
+          setCurrentPage('dashboard');
+        }
+      }
+    } catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Invalid email or password. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setCurrentPage("landing");
+  const handleRegister = async (name: string, email: string, password: string) => {
+    setLoading(true);
+    try {
+      const response = await apiRequest('POST', '/api/auth/register', { name, email, password });
+      const data = await response.json();
+      
+      toast({
+        title: "Registration Successful",
+        description: data.message || "Please check your email to verify your account.",
+      });
+      
+      setCurrentPage('login');
+    } catch (error: any) {
+      toast({
+        title: "Registration Failed",
+        description: error.message || "Unable to create account. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest('POST', '/api/auth/logout');
+      setCurrentUser(null);
+      setCurrentPage('landing');
+      
+      toast({
+        title: "Logged Out",
+        description: "You have been successfully logged out.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Logout Failed",
+        description: error.message || "Unable to logout. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleNavigate = (path: string) => {
@@ -105,6 +188,13 @@ export default function App() {
         return (
           <Register
             onRegister={handleRegister}
+            onNavigateToLogin={() => setCurrentPage("login")}
+            onNavigateToHome={() => setCurrentPage("landing")}
+          />
+        );
+      case "verify-email":
+        return (
+          <VerifyEmail
             onNavigateToLogin={() => setCurrentPage("login")}
             onNavigateToHome={() => setCurrentPage("landing")}
           />
@@ -147,35 +237,43 @@ export default function App() {
   };
 
   return (
+    <>
+      {isDashboardPage ? (
+        <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+          <div className="flex h-screen w-full">
+            <AppSidebar
+              userRole={currentUser?.role || "user"}
+              userName={currentUser?.name || ""}
+              userEmail={currentUser?.email || ""}
+              currentPath={`/${currentPage}`}
+              onNavigate={handleNavigate}
+              onLogout={handleLogout}
+            />
+            <div className="flex flex-col flex-1">
+              <header className="flex items-center justify-between p-4 border-b border-border">
+                <SidebarTrigger data-testid="button-sidebar-toggle" />
+                <ThemeToggle />
+              </header>
+              <main className="flex-1 overflow-auto p-8">
+                {renderPage()}
+              </main>
+            </div>
+          </div>
+        </SidebarProvider>
+      ) : (
+        renderPage()
+      )}
+      <Toaster />
+    </>
+  );
+}
+
+export default function App() {
+  return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <ThemeProvider defaultTheme="light">
-          {isDashboardPage ? (
-            <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-              <div className="flex h-screen w-full">
-                <AppSidebar
-                  userRole={currentUser?.role || "user"}
-                  userName={currentUser?.name || ""}
-                  userEmail={currentUser?.email || ""}
-                  currentPath={`/${currentPage}`}
-                  onNavigate={handleNavigate}
-                  onLogout={handleLogout}
-                />
-                <div className="flex flex-col flex-1">
-                  <header className="flex items-center justify-between p-4 border-b border-border">
-                    <SidebarTrigger data-testid="button-sidebar-toggle" />
-                    <ThemeToggle />
-                  </header>
-                  <main className="flex-1 overflow-auto p-8">
-                    {renderPage()}
-                  </main>
-                </div>
-              </div>
-            </SidebarProvider>
-          ) : (
-            renderPage()
-          )}
-          <Toaster />
+          <AppContent />
         </ThemeProvider>
       </TooltipProvider>
     </QueryClientProvider>
