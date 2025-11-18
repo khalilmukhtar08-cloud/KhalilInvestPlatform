@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet, ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, Clock } from "lucide-react";
@@ -16,6 +17,9 @@ import { format } from "date-fns";
 
 const transactionSchema = z.object({
   amount: z.coerce.number().positive("Amount must be greater than 0"),
+  paymentMethod: z.enum(["bank_transfer", "mobile_money", "crypto", "paypal", "cash"], {
+    required_error: "Please select a payment method",
+  }),
   description: z.string().optional(),
 });
 
@@ -54,6 +58,7 @@ export default function UserWallet() {
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       amount: 0,
+      paymentMethod: "bank_transfer",
       description: "",
     },
   });
@@ -62,6 +67,7 @@ export default function UserWallet() {
     resolver: zodResolver(transactionSchema),
     defaultValues: {
       amount: 0,
+      paymentMethod: "bank_transfer",
       description: "",
     },
   });
@@ -292,6 +298,30 @@ export default function UserWallet() {
                   />
                   <FormField
                     control={depositForm.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Method</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-deposit-payment-method">
+                              <SelectValue placeholder="Select payment method" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                            <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                            <SelectItem value="crypto">Cryptocurrency</SelectItem>
+                            <SelectItem value="paypal">PayPal</SelectItem>
+                            <SelectItem value="cash">Cash</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={depositForm.control}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
@@ -337,6 +367,30 @@ export default function UserWallet() {
                             {...field}
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={withdrawForm.control}
+                    name="paymentMethod"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Payment Method</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger data-testid="select-withdraw-payment-method">
+                              <SelectValue placeholder="Select payment method" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                            <SelectItem value="mobile_money">Mobile Money</SelectItem>
+                            <SelectItem value="crypto">Cryptocurrency</SelectItem>
+                            <SelectItem value="paypal">PayPal</SelectItem>
+                            <SelectItem value="cash">Cash</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
