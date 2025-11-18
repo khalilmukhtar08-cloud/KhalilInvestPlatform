@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { Wallet, ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, Clock } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -41,11 +42,11 @@ export default function UserWallet() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"deposit" | "withdraw" | "transfer">("deposit");
 
-  const { data: balanceData } = useQuery({
+  const { data: balanceData, isLoading: balanceLoading, error: balanceError } = useQuery({
     queryKey: ["/api/wallet/balance"],
   });
 
-  const { data: transactionsData } = useQuery<{ transactions: Transaction[] }>({
+  const { data: transactionsData, isLoading: transactionsLoading, error: transactionsError } = useQuery<{ transactions: Transaction[] }>({
     queryKey: ["/api/wallet/transactions"],
   });
 
@@ -172,7 +173,13 @@ export default function UserWallet() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold" data-testid="text-balance">${balance}</div>
+            {balanceLoading ? (
+              <Skeleton className="h-8 w-32" />
+            ) : balanceError ? (
+              <div className="text-sm text-destructive">Failed to load balance</div>
+            ) : (
+              <div className="text-2xl font-bold" data-testid="text-balance">${balance}</div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">Total funds in your wallet</p>
           </CardContent>
         </Card>
@@ -183,13 +190,19 @@ export default function UserWallet() {
             <ArrowDownCircle className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              $
-              {transactions
-                .filter((t) => t.type === "deposit" && t.status === "completed")
-                .reduce((sum, t) => sum + parseFloat(t.amount), 0)
-                .toFixed(2)}
-            </div>
+            {transactionsLoading ? (
+              <Skeleton className="h-8 w-32" />
+            ) : transactionsError ? (
+              <div className="text-sm text-destructive">Failed to load</div>
+            ) : (
+              <div className="text-2xl font-bold">
+                $
+                {transactions
+                  .filter((t) => t.type === "deposit" && t.status === "completed")
+                  .reduce((sum, t) => sum + parseFloat(t.amount), 0)
+                  .toFixed(2)}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">All time deposits</p>
           </CardContent>
         </Card>
@@ -200,13 +213,19 @@ export default function UserWallet() {
             <ArrowUpCircle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              $
-              {transactions
-                .filter((t) => t.type === "withdraw" && t.status === "completed")
-                .reduce((sum, t) => sum + parseFloat(t.amount), 0)
-                .toFixed(2)}
-            </div>
+            {transactionsLoading ? (
+              <Skeleton className="h-8 w-32" />
+            ) : transactionsError ? (
+              <div className="text-sm text-destructive">Failed to load</div>
+            ) : (
+              <div className="text-2xl font-bold">
+                $
+                {transactions
+                  .filter((t) => t.type === "withdraw" && t.status === "completed")
+                  .reduce((sum, t) => sum + parseFloat(t.amount), 0)
+                  .toFixed(2)}
+              </div>
+            )}
             <p className="text-xs text-muted-foreground mt-1">All time withdrawals</p>
           </CardContent>
         </Card>
@@ -428,7 +447,27 @@ export default function UserWallet() {
             <CardDescription>Recent deposits and withdrawals</CardDescription>
           </CardHeader>
           <CardContent>
-            {transactions.length === 0 ? (
+            {transactionsLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="flex items-start justify-between p-3 rounded-md border">
+                    <div className="flex items-start gap-3 flex-1">
+                      <Skeleton className="w-5 h-5 rounded-full" />
+                      <div className="space-y-2 flex-1">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </div>
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ))}
+              </div>
+            ) : transactionsError ? (
+              <div className="text-center py-8 text-destructive">
+                <p>Failed to load transaction history</p>
+                <p className="text-sm mt-2">Please try refreshing the page</p>
+              </div>
+            ) : transactions.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Clock className="w-12 h-12 mx-auto mb-2 opacity-50" />
                 <p>No transactions yet</p>
