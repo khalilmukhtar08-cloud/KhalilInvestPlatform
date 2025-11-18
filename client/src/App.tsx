@@ -19,12 +19,14 @@ import UserRealEstate from "@/pages/user-real-estate";
 import UserEcommerce from "@/pages/user-ecommerce";
 import UserSocial from "@/pages/user-social";
 import UserWallet from "@/pages/user-wallet";
+import UserP2P from "@/pages/user-p2p";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminUsers from "@/pages/admin-users";
 import AdminInvestments from "@/pages/admin-investments";
 import AdminRealEstate from "@/pages/admin-real-estate";
 import AdminEcommerce from "@/pages/admin-ecommerce";
 import AdminSocial from "@/pages/admin-social";
+import AdminP2P from "@/pages/admin-p2p";
 import AdminSettings from "@/pages/admin-settings";
 
 type Page = 
@@ -38,12 +40,14 @@ type Page =
   | "dashboard/ecommerce"
   | "dashboard/social"
   | "dashboard/wallet"
+  | "dashboard/p2p"
   | "admin"
   | "admin/users"
   | "admin/investments"
   | "admin/real-estate"
   | "admin/ecommerce"
   | "admin/social"
+  | "admin/p2p"
   | "admin/settings";
 
 type UserRole = "admin" | "user" | null;
@@ -211,6 +215,8 @@ function AppContent() {
         return <UserSocial />;
       case "dashboard/wallet":
         return <UserWallet />;
+      case "dashboard/p2p":
+        return <UserP2P />;
       case "admin":
         return <AdminDashboard />;
       case "admin/users":
@@ -223,10 +229,12 @@ function AppContent() {
         return <AdminEcommerce />;
       case "admin/social":
         return <AdminSocial />;
+      case "admin/p2p":
+        return <AdminP2P />;
       case "admin/settings":
         return <AdminSettings />;
       default:
-        return <Landing onNavigateToLogin={() => setCurrentPage("login")} onNavigateToRegister={() => setCurrentPage("register")} />;
+        return <Landing onNavigateToLogin={() => setCurrentPage("login")} onNavigateToRegister={() => setCurrentPage("register")} onNavigateToTerms={() => setCurrentPage("terms")} />;
     }
   };
 

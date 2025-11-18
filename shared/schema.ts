@@ -13,6 +13,8 @@ export const postStatusEnum = pgEnum("post_status", ["draft", "scheduled", "publ
 export const platformEnum = pgEnum("platform", ["facebook", "instagram", "linkedin", "tiktok", "twitter"]);
 export const transactionTypeEnum = pgEnum("transaction_type", ["deposit", "withdraw", "transfer_sent", "transfer_received"]);
 export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "completed", "failed"]);
+export const p2pOrderTypeEnum = pgEnum("p2p_order_type", ["buy", "sell"]);
+export const p2pOrderStatusEnum = pgEnum("p2p_order_status", ["open", "in_progress", "completed", "cancelled"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -334,3 +336,35 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;
 export type Transaction = typeof transactions.$inferSelect;
+
+// P2P Orders table
+export const p2pOrders = pgTable("p2p_orders", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  type: p2pOrderTypeEnum("type").notNull(),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  price: decimal("price", { precision: 12, scale: 2 }).notNull(),
+  minLimit: decimal("min_limit", { precision: 12, scale: 2 }).notNull(),
+  maxLimit: decimal("max_limit", { precision: 12, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method").notNull(),
+  status: p2pOrderStatusEnum("status").notNull().default("open"),
+  matchedUserId: varchar("matched_user_id").references(() => users.id, { onDelete: "set null" }),
+  completedAmount: decimal("completed_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertP2POrderSchema = createInsertSchema(p2pOrders).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  completedAmount: true,
+}).extend({
+  amount: z.coerce.number().positive("Amount must be positive"),
+  price: z.coerce.number().positive("Price must be positive"),
+  minLimit: z.coerce.number().positive("Minimum limit must be positive"),
+  maxLimit: z.coerce.number().positive("Maximum limit must be positive"),
+});
+
+export type InsertP2POrder = z.infer<typeof insertP2POrderSchema>;
+export type P2POrder = typeof p2pOrders.$inferSelect;

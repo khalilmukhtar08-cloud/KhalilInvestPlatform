@@ -1234,6 +1234,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // P2P Routes
+  app.get("/api/p2p/orders", isAuthenticated, async (req, res) => {
+    try {
+      const orders = await storage.getAllP2POrders();
+      res.json({ orders });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch P2P orders" });
+    }
+  });
+
+  app.get("/api/p2p/orders/my", isAuthenticated, async (req, res) => {
+    try {
+      const orders = await storage.getP2POrdersByUser(req.user!.id);
+      res.json({ orders });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch your orders" });
+    }
+  });
+
+  app.get("/api/p2p/orders/open/:type", isAuthenticated, async (req, res) => {
+    try {
+      const { type } = req.params;
+      if (type !== "buy" && type !== "sell") {
+        return res.status(400).json({ message: "Invalid order type" });
+      }
+      const orders = await storage.getOpenP2POrders(type);
+      res.json({ orders });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch open orders" });
+    }
+  });
+
+  app.post("/api/p2p/orders", isAuthenticated, async (req, res) => {
+    try {
+      const orderData = { ...req.body, userId: req.user!.id };
+      const order = await storage.createP2POrder(orderData);
+      res.status(201).json({ order });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create P2P order" });
+    }
+  });
+
+  app.post("/api/p2p/orders/:id/match", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { amount } = req.body;
+      
+      if (!amount || typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({ message: "Valid amount is required" });
+      }
+
+      const result = await storage.matchP2POrder(id, req.user!.id, amount);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to match P2P order" });
+    }
+  });
+
+  app.post("/api/p2p/orders/:id/complete", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.completeP2POrder(id);
+      res.status(200).json({ message: "Order completed successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to complete order" });
+    }
+  });
+
+  app.post("/api/p2p/orders/:id/cancel", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.cancelP2POrder(id);
+      res.status(200).json({ message: "Order cancelled successfully" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to cancel order" });
+    }
+  });
+
+  app.delete("/api/p2p/orders/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteP2POrder(id);
+      res.status(200).json({ message: "Order deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete order" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

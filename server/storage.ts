@@ -13,6 +13,7 @@ import {
   emailNotifications,
   userPreferences,
   transactions,
+  p2pOrders,
   type User,
   type InsertUser,
   type Investment,
@@ -39,6 +40,8 @@ import {
   type InsertUserPreferences,
   type Transaction,
   type InsertTransaction,
+  type P2POrder,
+  type InsertP2POrder,
 } from "@shared/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { InsufficientFundsError, UserNotFoundError } from "./errors";
@@ -144,6 +147,18 @@ export interface IStorage {
   deposit(userId: string, amount: number, description?: string): Promise<Transaction>;
   withdraw(userId: string, amount: number, description?: string): Promise<Transaction>;
   transfer(fromUserId: string, toUserId: string, amount: number, description?: string): Promise<{ senderTransaction: Transaction; recipientTransaction: Transaction }>;
+
+  // P2P Orders
+  getP2POrder(id: string): Promise<P2POrder | undefined>;
+  getP2POrdersByUser(userId: string): Promise<P2POrder[]>;
+  getAllP2POrders(): Promise<P2POrder[]>;
+  getOpenP2POrders(type: "buy" | "sell"): Promise<P2POrder[]>;
+  createP2POrder(order: InsertP2POrder): Promise<P2POrder>;
+  updateP2POrder(id: string, data: Partial<P2POrder>): Promise<P2POrder | undefined>;
+  matchP2POrder(orderId: string, userId: string, amount: number): Promise<{ order: P2POrder; transaction: Transaction }>;
+  completeP2POrder(orderId: string): Promise<void>;
+  cancelP2POrder(orderId: string): Promise<void>;
+  deleteP2POrder(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -637,6 +652,108 @@ export class DatabaseStorage implements IStorage {
 
       return { senderTransaction, recipientTransaction };
     });
+  }
+
+  // P2P Orders
+  async getP2POrder(id: string): Promise<P2POrder | undefined> {
+    const [order] = await db.select().from(p2pOrders).where(eq(p2pOrders.id, id)).limit(1);
+    return order;
+  }
+
+  async getP2POrdersByUser(userId: string): Promise<P2POrder[]> {
+    return db.select().from(p2pOrders).where(eq(p2pOrders.userId, userId)).orderBy(desc(p2pOrders.createdAt));
+  }
+
+  async getAllP2POrders(): Promise<P2POrder[]> {
+    return db.select().from(p2pOrders).orderBy(desc(p2pOrders.createdAt));
+  }
+
+  async getOpenP2POrders(type: "buy" | "sell"): Promise<P2POrder[]> {
+    return db.select().from(p2pOrders)
+      .where(and(
+        eq(p2pOrders.type, type),
+        eq(p2pOrders.status, "open")
+      ))
+      .orderBy(desc(p2pOrders.createdAt));
+  }
+
+  async createP2POrder(order: InsertP2POrder): Promise<P2POrder> {
+    const [newOrder] = await db.insert(p2pOrders).values({
+      ...order,
+      amount: order.amount.toString(),
+      price: order.price.toString(),
+      minLimit: order.minLimit.toString(),
+      maxLimit: order.maxLimit.toString(),
+    }).returning();
+    return newOrder;
+  }
+
+  async updateP2POrder(id: string, data: Partial<P2POrder>): Promise<P2POrder | undefined> {
+    const [updated] = await db.update(p2pOrders)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(p2pOrders.id, id))
+      .returning();
+    return updated;
+  }
+
+  async matchP2POrder(orderId: string, userId: string, amount: number): Promise<{ order: P2POrder; transaction: Transaction }> {
+    return await db.transaction(async (tx) => {
+      const [order] = await tx.select().from(p2pOrders).where(eq(p2pOrders.id, orderId)).limit(1);
+      
+      if (!order) {
+        throw new Error("P2P order not found");
+      }
+
+      if (order.status !== "open") {
+        throw new Error("Order is not available");
+      }
+
+      if (order.userId === userId) {
+        throw new Error("Cannot match your own order");
+      }
+
+      const [updatedOrder] = await tx.update(p2pOrders)
+        .set({
+          status: "in_progress",
+          matchedUserId: userId,
+          updatedAt: new Date(),
+        })
+        .where(eq(p2pOrders.id, orderId))
+        .returning();
+
+      const [transaction] = await tx.insert(transactions).values({
+        userId,
+        type: "transfer_sent",
+        amount: amount.toString(),
+        status: "pending",
+        description: `P2P order match - ${order.type} order`,
+        recipientId: order.userId,
+      }).returning();
+
+      return { order: updatedOrder, transaction };
+    });
+  }
+
+  async completeP2POrder(orderId: string): Promise<void> {
+    await db.update(p2pOrders)
+      .set({
+        status: "completed",
+        updatedAt: new Date(),
+      })
+      .where(eq(p2pOrders.id, orderId));
+  }
+
+  async cancelP2POrder(orderId: string): Promise<void> {
+    await db.update(p2pOrders)
+      .set({
+        status: "cancelled",
+        updatedAt: new Date(),
+      })
+      .where(eq(p2pOrders.id, orderId));
+  }
+
+  async deleteP2POrder(id: string): Promise<void> {
+    await db.delete(p2pOrders).where(eq(p2pOrders.id, id));
   }
 }
 
