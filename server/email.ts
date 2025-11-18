@@ -143,37 +143,6 @@ export class EmailService {
     return this.sendEmail(toEmail, subject, html);
   }
 
-  async sendVerificationEmail(toEmail: string, userName: string, verificationToken: string) {
-    const baseUrl = process.env.REPL_SLUG 
-      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
-      : `http://localhost:5000`;
-    const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
-    
-    const subject = "Verify Your Email - Khalil Investment Company";
-    const html = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #4F46E5;">Verify Your Email Address</h2>
-        <p>Hi ${userName},</p>
-        <p>Thank you for registering with Khalil Investment Company!</p>
-        <p>To complete your registration and secure your account, please verify your email address by clicking the button below:</p>
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${verificationUrl}" 
-             style="background-color: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Verify Email Address
-          </a>
-        </div>
-        <p>Or copy and paste this link into your browser:</p>
-        <p style="color: #666; word-break: break-all;">${verificationUrl}</p>
-        <p>This link will expire in 24 hours for security reasons.</p>
-        <p>If you didn't create an account with us, please ignore this email.</p>
-        <br>
-        <p>Best regards,<br>Khalil Investment Security Team</p>
-      </div>
-    `;
-
-    return this.sendEmail(toEmail, subject, html);
-  }
-
   async sendLoginNotification(toEmail: string, userName: string, loginTime: Date, ipAddress?: string, userAgent?: string) {
     const formattedTime = loginTime.toLocaleString('en-US', {
       weekday: 'long',

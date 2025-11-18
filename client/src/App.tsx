@@ -12,7 +12,6 @@ import { AppSidebar } from "@/components/app-sidebar";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
-import VerifyEmail from "@/pages/verify-email";
 import UserDashboard from "@/pages/user-dashboard";
 import UserInvestments from "@/pages/user-investments";
 import UserRealEstate from "@/pages/user-real-estate";
@@ -31,7 +30,6 @@ type Page =
   | "landing" 
   | "login" 
   | "register"
-  | "verify-email"
   | "dashboard" 
   | "dashboard/investments"
   | "dashboard/real-estate"
@@ -188,13 +186,6 @@ function AppContent() {
         return (
           <Register
             onRegister={handleRegister}
-            onNavigateToLogin={() => setCurrentPage("login")}
-            onNavigateToHome={() => setCurrentPage("landing")}
-          />
-        );
-      case "verify-email":
-        return (
-          <VerifyEmail
             onNavigateToLogin={() => setCurrentPage("login")}
             onNavigateToHome={() => setCurrentPage("landing")}
           />
