@@ -121,12 +121,12 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(toEmail: string, userName: string) {
-    const subject = "Welcome to Our Platform!";
+    const subject = "Welcome to Khalil Investment Company!";
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #4F46E5;">Welcome Aboard!</h2>
         <p>Hi ${userName},</p>
-        <p>Thank you for joining our platform. We're excited to have you here!</p>
+        <p>Thank you for joining Khalil Investment Company. We're excited to have you here!</p>
         <p>Explore our features:</p>
         <ul>
           <li>Investment Management</li>
@@ -134,9 +134,72 @@ export class EmailService {
           <li>E-commerce Marketplace</li>
           <li>Social Media Management</li>
         </ul>
-        <p>Get started by completing your profile and exploring our dashboard.</p>
+        <p>Get started by verifying your email and exploring our dashboard.</p>
         <br>
-        <p>Best regards,<br>The Team</p>
+        <p>Best regards,<br>Khalil Investment Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(toEmail, subject, html);
+  }
+
+  async sendVerificationEmail(toEmail: string, userName: string, verificationToken: string) {
+    const baseUrl = process.env.REPL_SLUG 
+      ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co`
+      : `http://localhost:5000`;
+    const verificationUrl = `${baseUrl}/verify-email?token=${verificationToken}`;
+    
+    const subject = "Verify Your Email - Khalil Investment Company";
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4F46E5;">Verify Your Email Address</h2>
+        <p>Hi ${userName},</p>
+        <p>Thank you for registering with Khalil Investment Company!</p>
+        <p>To complete your registration and secure your account, please verify your email address by clicking the button below:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verificationUrl}" 
+             style="background-color: #4F46E5; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Verify Email Address
+          </a>
+        </div>
+        <p>Or copy and paste this link into your browser:</p>
+        <p style="color: #666; word-break: break-all;">${verificationUrl}</p>
+        <p>This link will expire in 24 hours for security reasons.</p>
+        <p>If you didn't create an account with us, please ignore this email.</p>
+        <br>
+        <p>Best regards,<br>Khalil Investment Security Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(toEmail, subject, html);
+  }
+
+  async sendLoginNotification(toEmail: string, userName: string, loginTime: Date, ipAddress?: string, userAgent?: string) {
+    const formattedTime = loginTime.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZoneName: 'short'
+    });
+
+    const subject = "New Login Detected - Khalil Investment Company";
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4F46E5;">Security Alert: New Login</h2>
+        <p>Hi ${userName},</p>
+        <p>We detected a new login to your Khalil Investment account:</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Time:</strong> ${formattedTime}</p>
+          ${ipAddress ? `<p style="margin: 5px 0;"><strong>IP Address:</strong> ${ipAddress}</p>` : ''}
+          ${userAgent ? `<p style="margin: 5px 0;"><strong>Device:</strong> ${userAgent}</p>` : ''}
+        </div>
+        <p>If this was you, you can safely ignore this email.</p>
+        <p style="color: #EF4444;"><strong>If this wasn't you, please secure your account immediately by changing your password.</strong></p>
+        <br>
+        <p>Best regards,<br>Khalil Investment Security Team</p>
       </div>
     `;
 

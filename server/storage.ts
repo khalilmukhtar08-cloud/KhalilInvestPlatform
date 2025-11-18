@@ -143,6 +143,7 @@ export interface IStorage {
   getUserBalance(userId: string): Promise<string>;
   deposit(userId: string, amount: number, description?: string): Promise<Transaction>;
   withdraw(userId: string, amount: number, description?: string): Promise<Transaction>;
+  transfer(fromUserId: string, toUserId: string, amount: number, description?: string): Promise<{ senderTransaction: Transaction; recipientTransaction: Transaction }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -580,6 +581,61 @@ export class DatabaseStorage implements IStorage {
       }).returning();
 
       return transaction;
+    });
+  }
+
+  async transfer(fromUserId: string, toUserId: string, amount: number, description?: string): Promise<{ senderTransaction: Transaction; recipientTransaction: Transaction }> {
+    return await db.transaction(async (tx) => {
+      const [sender] = await tx.select().from(users).where(eq(users.id, fromUserId)).limit(1);
+      const [recipient] = await tx.select().from(users).where(eq(users.id, toUserId)).limit(1);
+      
+      if (!sender) {
+        throw new UserNotFoundError();
+      }
+      
+      if (!recipient) {
+        throw new Error("Recipient user not found");
+      }
+
+      if (sender.id === recipient.id) {
+        throw new Error("Cannot transfer to yourself");
+      }
+
+      const senderResult = await tx.update(users)
+        .set({ balance: sql`${users.balance} - ${amount.toString()}` })
+        .where(and(
+          eq(users.id, fromUserId),
+          sql`${users.balance}::numeric >= ${amount.toString()}::numeric`
+        ))
+        .returning({ id: users.id, balance: users.balance });
+
+      if (!senderResult || senderResult.length === 0) {
+        throw new InsufficientFundsError();
+      }
+
+      await tx.update(users)
+        .set({ balance: sql`${users.balance} + ${amount.toString()}` })
+        .where(eq(users.id, toUserId));
+
+      const [senderTransaction] = await tx.insert(transactions).values({
+        userId: fromUserId,
+        recipientId: toUserId,
+        type: "transfer_sent",
+        amount: amount.toString(),
+        status: "completed",
+        description: description || `Transfer to ${recipient.name}`,
+      }).returning();
+
+      const [recipientTransaction] = await tx.insert(transactions).values({
+        userId: toUserId,
+        recipientId: fromUserId,
+        type: "transfer_received",
+        amount: amount.toString(),
+        status: "completed",
+        description: description || `Transfer from ${sender.name}`,
+      }).returning();
+
+      return { senderTransaction, recipientTransaction };
     });
   }
 }

@@ -4,7 +4,7 @@ import passport from "passport";
 import bcrypt from "bcryptjs";
 import { storage } from "./storage";
 import { emailService } from "./email";
-import { generateReferralCode, generateAffiliateCode } from "./utils";
+import { generateReferralCode, generateAffiliateCode, generateEmailVerificationToken, getVerificationExpiry } from "./utils";
 import { InsufficientFundsError, UserNotFoundError } from "./errors";
 import { 
   insertUserSchema, 
@@ -56,12 +56,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const hashedPassword = await bcrypt.hash(validatedData.password, 10);
+      const verificationToken = generateEmailVerificationToken();
+      const verificationExpiry = getVerificationExpiry();
+
       const newUser = await storage.createUser({
         name: validatedData.name,
         email: validatedData.email,
         password: hashedPassword,
         role: "user",
         isBlocked: false,
+      });
+
+      await storage.updateUser(newUser.id, {
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: verificationExpiry,
+        isEmailVerified: false,
       });
 
       if (referralCode) {
@@ -90,14 +99,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      await emailService.sendWelcomeEmail(newUser.email, newUser.name);
+      try {
+        await emailService.sendVerificationEmail(newUser.email, newUser.name, verificationToken);
+      } catch (emailError) {
+        console.error("Failed to send verification email:", emailError);
+      }
 
-      req.login(newUser, (err) => {
-        if (err) {
-          return next(err);
-        }
-        const { password: _, ...userWithoutPassword } = newUser;
-        res.status(201).json({ user: userWithoutPassword });
+      const { password: _, emailVerificationToken: __, emailVerificationExpires: ___, ...userWithoutPassword } = newUser;
+      res.status(201).json({ 
+        user: { ...userWithoutPassword, isEmailVerified: false },
+        message: "Registration successful! Please check your email to verify your account."
       });
     } catch (error: any) {
       res.status(400).json({ message: error.message || "Registration failed" });
@@ -112,14 +123,107 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(401).json({ message: info?.message || "Login failed" });
       }
-      req.login(user, (err) => {
+      
+      if (!user.isEmailVerified) {
+        return res.status(403).json({ 
+          message: "Please verify your email before logging in. Check your inbox for the verification link.",
+          requiresVerification: true
+        });
+      }
+
+      req.login(user, async (err) => {
         if (err) {
           return next(err);
         }
-        const { password: _, ...userWithoutPassword } = user;
+
+        try {
+          const ipAddress = req.ip || req.socket.remoteAddress;
+          const userAgent = req.get('user-agent');
+          await emailService.sendLoginNotification(
+            user.email, 
+            user.name, 
+            new Date(),
+            ipAddress,
+            userAgent
+          );
+        } catch (emailError) {
+          console.error("Failed to send login notification:", emailError);
+        }
+
+        const { password: _, emailVerificationToken: __, emailVerificationExpires: ___, ...userWithoutPassword } = user;
         res.json({ user: userWithoutPassword });
       });
     })(req, res, next);
+  });
+
+  app.get("/api/auth/verify-email", async (req, res) => {
+    try {
+      const { token } = req.query;
+
+      if (!token || typeof token !== 'string') {
+        return res.status(400).json({ message: "Verification token is required" });
+      }
+
+      const users = await storage.getAllUsers();
+      const user = users.find(u => u.emailVerificationToken === token);
+
+      if (!user) {
+        return res.status(400).json({ message: "Invalid or expired verification token" });
+      }
+
+      if (user.isEmailVerified) {
+        return res.status(400).json({ message: "Email already verified" });
+      }
+
+      if (user.emailVerificationExpires && new Date() > user.emailVerificationExpires) {
+        return res.status(400).json({ message: "Verification token has expired. Please request a new one." });
+      }
+
+      await storage.updateUser(user.id, {
+        isEmailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      });
+
+      await emailService.sendWelcomeEmail(user.email, user.name);
+
+      res.json({ message: "Email verified successfully! You can now log in." });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Email verification failed" });
+    }
+  });
+
+  app.post("/api/auth/resend-verification", async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      if (user.isEmailVerified) {
+        return res.status(400).json({ message: "Email already verified" });
+      }
+
+      const verificationToken = generateEmailVerificationToken();
+      const verificationExpiry = getVerificationExpiry();
+
+      await storage.updateUser(user.id, {
+        emailVerificationToken: verificationToken,
+        emailVerificationExpires: verificationExpiry,
+      });
+
+      await emailService.sendVerificationEmail(user.email, user.name, verificationToken);
+
+      res.json({ message: "Verification email sent successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to resend verification email" });
+    }
   });
 
   app.post("/api/auth/logout", (req, res, next) => {
@@ -1161,6 +1265,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: error.message });
       }
       res.status(400).json({ message: error.message || "Failed to withdraw" });
+    }
+  });
+
+  app.post("/api/wallet/transfer", isAuthenticated, async (req, res) => {
+    try {
+      const { recipientEmail, amount, description } = req.body;
+      
+      if (!recipientEmail) {
+        return res.status(400).json({ message: "Recipient email is required" });
+      }
+
+      if (!amount || typeof amount !== 'number' || amount <= 0) {
+        return res.status(400).json({ message: "Valid amount is required" });
+      }
+
+      const recipient = await storage.getUserByEmail(recipientEmail);
+      if (!recipient) {
+        return res.status(404).json({ message: "Recipient not found" });
+      }
+
+      if (recipient.id === req.user!.id) {
+        return res.status(400).json({ message: "Cannot transfer to yourself" });
+      }
+
+      const { senderTransaction, recipientTransaction } = await storage.transfer(
+        req.user!.id,
+        recipient.id,
+        amount,
+        description || undefined
+      );
+
+      const balance = await storage.getUserBalance(req.user!.id);
+      
+      res.status(201).json({ 
+        transaction: senderTransaction,
+        recipientTransaction,
+        balance,
+        message: `Successfully transferred $${amount.toFixed(2)} to ${recipient.name}`
+      });
+    } catch (error: any) {
+      if (error instanceof InsufficientFundsError) {
+        return res.status(409).json({ message: "Insufficient funds for transfer" });
+      }
+      if (error instanceof UserNotFoundError) {
+        return res.status(404).json({ message: error.message });
+      }
+      res.status(400).json({ message: error.message || "Failed to transfer funds" });
     }
   });
 

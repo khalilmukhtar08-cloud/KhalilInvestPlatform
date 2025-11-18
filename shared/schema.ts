@@ -11,7 +11,7 @@ export const propertyTypeEnum = pgEnum("property_type", ["residential", "commerc
 export const productStatusEnum = pgEnum("product_status", ["active", "pending", "flagged"]);
 export const postStatusEnum = pgEnum("post_status", ["draft", "scheduled", "published"]);
 export const platformEnum = pgEnum("platform", ["facebook", "instagram", "linkedin", "tiktok", "twitter"]);
-export const transactionTypeEnum = pgEnum("transaction_type", ["deposit", "withdraw"]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["deposit", "withdraw", "transfer_sent", "transfer_received"]);
 export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "completed", "failed"]);
 
 // Users table
@@ -22,6 +22,9 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   role: userRoleEnum("role").notNull().default("user"),
   isBlocked: boolean("is_blocked").notNull().default(false),
+  isEmailVerified: boolean("is_email_verified").notNull().default(false),
+  emailVerificationToken: text("email_verification_token"),
+  emailVerificationExpires: timestamp("email_verification_expires"),
   balance: decimal("balance", { precision: 12, scale: 2 }).notNull().default("0.00"),
   referralCode: text("referral_code").unique(),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
@@ -31,6 +34,9 @@ export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   joinedAt: true,
   referralCode: true,
+  isEmailVerified: true,
+  emailVerificationToken: true,
+  emailVerificationExpires: true,
 }).extend({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
@@ -315,6 +321,7 @@ export const transactions = pgTable("transactions", {
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   status: transactionStatusEnum("status").notNull().default("completed"),
   description: text("description"),
+  recipientId: varchar("recipient_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
