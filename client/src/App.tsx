@@ -173,6 +173,7 @@ function AppContent() {
           <Landing
             onNavigateToLogin={() => setCurrentPage("login")}
             onNavigateToRegister={() => setCurrentPage("register")}
+            onNavigateToTerms={() => setCurrentPage("terms")}
           />
         );
       case "login":

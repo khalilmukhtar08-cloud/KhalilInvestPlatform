@@ -9,7 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Wallet, ArrowUpCircle, ArrowDownCircle, Clock } from "lucide-react";
+import { Wallet, ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, Clock } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { format } from "date-fns";
 
@@ -18,7 +18,14 @@ const transactionSchema = z.object({
   description: z.string().optional(),
 });
 
+const transferSchema = z.object({
+  recipientEmail: z.string().email("Valid email is required"),
+  amount: z.coerce.number().positive("Amount must be greater than 0"),
+  description: z.string().optional(),
+});
+
 type TransactionFormData = z.infer<typeof transactionSchema>;
+type TransferFormData = z.infer<typeof transferSchema>;
 
 interface Transaction {
   id: string;
@@ -32,7 +39,7 @@ interface Transaction {
 
 export default function UserWallet() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit");
+  const [activeTab, setActiveTab] = useState<"deposit" | "withdraw" | "transfer">("deposit");
 
   const { data: balanceData } = useQuery({
     queryKey: ["/api/wallet/balance"],
@@ -53,6 +60,15 @@ export default function UserWallet() {
   const withdrawForm = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     defaultValues: {
+      amount: 0,
+      description: "",
+    },
+  });
+
+  const transferForm = useForm<TransferFormData>({
+    resolver: zodResolver(transferSchema),
+    defaultValues: {
+      recipientEmail: "",
       amount: 0,
       description: "",
     },
@@ -104,12 +120,39 @@ export default function UserWallet() {
     },
   });
 
+  const transferMutation = useMutation({
+    mutationFn: async (data: TransferFormData) => {
+      return await apiRequest("POST", "/api/wallet/transfer", data);
+    },
+    onSuccess: (response: any) => {
+      toast({
+        title: "Transfer successful",
+        description: response.message || "Funds have been transferred",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/balance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      transferForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Transfer failed",
+        description: error.message || "Failed to transfer funds",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onDeposit = (data: TransactionFormData) => {
     depositMutation.mutate(data);
   };
 
   const onWithdraw = (data: TransactionFormData) => {
     withdrawMutation.mutate(data);
+  };
+
+  const onTransfer = (data: TransferFormData) => {
+    transferMutation.mutate(data);
   };
 
   const balance = (balanceData as any)?.balance || "0.00";
@@ -173,10 +216,10 @@ export default function UserWallet() {
         <Card>
           <CardHeader>
             <CardTitle>Manage Funds</CardTitle>
-            <CardDescription>Deposit or withdraw money from your wallet</CardDescription>
+            <CardDescription>Deposit, withdraw, or transfer money</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2 mb-4">
+            <div className="flex gap-2 mb-4 flex-wrap">
               <Button
                 variant={activeTab === "deposit" ? "default" : "outline"}
                 onClick={() => setActiveTab("deposit")}
@@ -195,9 +238,18 @@ export default function UserWallet() {
                 <ArrowUpCircle className="w-4 h-4 mr-2" />
                 Withdraw
               </Button>
+              <Button
+                variant={activeTab === "transfer" ? "default" : "outline"}
+                onClick={() => setActiveTab("transfer")}
+                className="flex-1"
+                data-testid="button-tab-transfer"
+              >
+                <ArrowLeftRight className="w-4 h-4 mr-2" />
+                Transfer
+              </Button>
             </div>
 
-            {activeTab === "deposit" ? (
+            {activeTab === "deposit" && (
               <Form {...depositForm}>
                 <form onSubmit={depositForm.handleSubmit(onDeposit)} className="space-y-4">
                   <FormField
@@ -246,7 +298,9 @@ export default function UserWallet() {
                   </Button>
                 </form>
               </Form>
-            ) : (
+            )}
+
+            {activeTab === "withdraw" && (
               <Form {...withdrawForm}>
                 <form onSubmit={withdrawForm.handleSubmit(onWithdraw)} className="space-y-4">
                   <FormField
@@ -292,6 +346,75 @@ export default function UserWallet() {
                     data-testid="button-submit-withdraw"
                   >
                     {withdrawMutation.isPending ? "Processing..." : "Withdraw Funds"}
+                  </Button>
+                </form>
+              </Form>
+            )}
+
+            {activeTab === "transfer" && (
+              <Form {...transferForm}>
+                <form onSubmit={transferForm.handleSubmit(onTransfer)} className="space-y-4">
+                  <FormField
+                    control={transferForm.control}
+                    name="recipientEmail"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Recipient Email</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="email"
+                            placeholder="recipient@example.com"
+                            data-testid="input-recipient-email"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={transferForm.control}
+                    name="amount"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Amount</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            data-testid="input-transfer-amount"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={transferForm.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description (Optional)</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Add a note..."
+                            data-testid="input-transfer-description"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={transferMutation.isPending}
+                    data-testid="button-submit-transfer"
+                  >
+                    {transferMutation.isPending ? "Processing..." : "Transfer Funds"}
                   </Button>
                 </form>
               </Form>

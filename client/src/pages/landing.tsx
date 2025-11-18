@@ -7,9 +7,10 @@ import logoImage from "@assets/khalil_investment_logo.jpg";
 interface LandingProps {
   onNavigateToLogin: () => void;
   onNavigateToRegister: () => void;
+  onNavigateToTerms: () => void;
 }
 
-export default function Landing({ onNavigateToLogin, onNavigateToRegister }: LandingProps) {
+export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNavigateToTerms }: LandingProps) {
   const features = [
     {
       icon: TrendingUp,
@@ -169,8 +170,17 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister }: Lan
       </section>
 
       <footer className="border-t border-border py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center text-sm text-muted-foreground">
+        <div className="max-w-7xl mx-auto text-center text-sm text-muted-foreground space-y-2">
           <p>&copy; 2024 Khalil Investment Platform. All rights reserved.</p>
+          <p>
+            <button
+              onClick={onNavigateToTerms}
+              className="underline hover-elevate"
+              data-testid="link-terms"
+            >
+              Terms and Conditions
+            </button>
+          </p>
         </div>
       </footer>
     </div>
