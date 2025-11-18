@@ -12,6 +12,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import Landing from "@/pages/landing";
 import Login from "@/pages/login";
 import Register from "@/pages/register";
+import TermsAndConditions from "@/pages/terms-and-conditions";
 import UserDashboard from "@/pages/user-dashboard";
 import UserInvestments from "@/pages/user-investments";
 import UserRealEstate from "@/pages/user-real-estate";
@@ -30,6 +31,7 @@ type Page =
   | "landing" 
   | "login" 
   | "register"
+  | "terms"
   | "dashboard" 
   | "dashboard/investments"
   | "dashboard/real-estate"
@@ -187,6 +189,12 @@ function AppContent() {
           <Register
             onRegister={handleRegister}
             onNavigateToLogin={() => setCurrentPage("login")}
+            onNavigateToHome={() => setCurrentPage("landing")}
+          />
+        );
+      case "terms":
+        return (
+          <TermsAndConditions
             onNavigateToHome={() => setCurrentPage("landing")}
           />
         );
