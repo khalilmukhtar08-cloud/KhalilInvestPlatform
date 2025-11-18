@@ -554,7 +554,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async withdraw(userId: string, amount: number, description?: string): Promise<Transaction> {
-    return await db.transaction(async (tx) {
+    return await db.transaction(async (tx) => {
       const result = await tx.update(users)
         .set({ balance: sql`${users.balance} - ${amount.toString()}` })
         .where(and(
