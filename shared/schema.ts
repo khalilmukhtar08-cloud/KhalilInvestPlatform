@@ -214,12 +214,16 @@ export type InsertReferral = z.infer<typeof insertReferralSchema>;
 export type Referral = typeof referrals.$inferSelect;
 
 // Affiliates table
+export const ambassadorTierEnum = pgEnum("ambassador_tier", ["bronze", "silver", "gold", "platinum"]);
+
 export const affiliates = pgTable("affiliates", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   affiliateCode: text("affiliate_code").notNull().unique(),
   totalSales: decimal("total_sales", { precision: 12, scale: 2 }).notNull().default("0"),
   totalCommission: decimal("total_commission", { precision: 12, scale: 2 }).notNull().default("0"),
+  tier: ambassadorTierEnum("tier").notNull().default("bronze"),
+  salesCount: integer("sales_count").notNull().default(0),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });

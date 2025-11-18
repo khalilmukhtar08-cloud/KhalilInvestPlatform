@@ -4,6 +4,7 @@ import { InvestmentCard } from "@/components/investment-card";
 import { DollarSign, TrendingUp, Building2, ShoppingCart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 
 interface Investment {
   id: string;
@@ -40,6 +41,10 @@ export default function UserDashboard() {
 
   const { data: walletData } = useQuery({
     queryKey: ["/api/wallet/balance"],
+  });
+
+  const { data: analyticsData, isLoading: analyticsLoading } = useQuery<{ data: any[] }>({
+    queryKey: ["/api/analytics/portfolio"],
   });
 
   const investments = investmentsData?.investments || [];
@@ -123,9 +128,57 @@ export default function UserDashboard() {
           <CardTitle>Portfolio Performance</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-64 flex items-center justify-center text-muted-foreground">
-            Chart visualization will be implemented here showing ROI over time
-          </div>
+          {analyticsLoading ? (
+            <div className="h-64 flex items-center justify-center">
+              <Skeleton className="h-full w-full" />
+            </div>
+          ) : analyticsData?.data && analyticsData.data.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={analyticsData.data}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="date" 
+                  className="text-xs"
+                  tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                />
+                <YAxis className="text-xs" />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+                  formatter={(value: number) => `$${value.toFixed(2)}`}
+                  labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="portfolio" 
+                  stroke="hsl(var(--primary))" 
+                  strokeWidth={2}
+                  name="Investments"
+                  dot={{ fill: 'hsl(var(--primary))' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="balance" 
+                  stroke="hsl(var(--chart-2))" 
+                  strokeWidth={2}
+                  name="Wallet Balance"
+                  dot={{ fill: 'hsl(var(--chart-2))' }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="total" 
+                  stroke="hsl(var(--chart-3))" 
+                  strokeWidth={2}
+                  name="Total Portfolio"
+                  dot={{ fill: 'hsl(var(--chart-3))' }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-64 flex items-center justify-center text-muted-foreground">
+              No data available yet. Start investing to see your portfolio performance!
+            </div>
+          )}
         </CardContent>
       </Card>
 

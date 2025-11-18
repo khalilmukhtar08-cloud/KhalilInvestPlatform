@@ -9,6 +9,9 @@ import {
   LogOut,
   Wallet,
   ArrowUpDown,
+  User,
+  UserPlus,
+  Award,
 } from "lucide-react";
 import {
   Sidebar,
@@ -78,6 +81,21 @@ export function AppSidebar({
       title: "Social Media",
       url: "/dashboard/social",
       icon: Share2,
+    },
+    {
+      title: "Profile",
+      url: "/dashboard/profile",
+      icon: User,
+    },
+    {
+      title: "Referrals",
+      url: "/dashboard/referrals",
+      icon: UserPlus,
+    },
+    {
+      title: "Ambassador",
+      url: "/dashboard/ambassador",
+      icon: Award,
     },
   ];
 

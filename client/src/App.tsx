@@ -20,6 +20,9 @@ import UserEcommerce from "@/pages/user-ecommerce";
 import UserSocial from "@/pages/user-social";
 import UserWallet from "@/pages/user-wallet";
 import UserP2P from "@/pages/user-p2p";
+import UserProfile from "@/pages/user-profile";
+import UserReferrals from "@/pages/user-referrals";
+import UserAmbassador from "@/pages/user-ambassador";
 import AdminDashboard from "@/pages/admin-dashboard";
 import AdminUsers from "@/pages/admin-users";
 import AdminInvestments from "@/pages/admin-investments";
@@ -41,6 +44,9 @@ type Page =
   | "dashboard/social"
   | "dashboard/wallet"
   | "dashboard/p2p"
+  | "dashboard/profile"
+  | "dashboard/referrals"
+  | "dashboard/ambassador"
   | "admin"
   | "admin/users"
   | "admin/investments"
@@ -217,6 +223,12 @@ function AppContent() {
         return <UserWallet />;
       case "dashboard/p2p":
         return <UserP2P />;
+      case "dashboard/profile":
+        return <UserProfile />;
+      case "dashboard/referrals":
+        return <UserReferrals />;
+      case "dashboard/ambassador":
+        return <UserAmbassador />;
       case "admin":
         return <AdminDashboard />;
       case "admin/users":

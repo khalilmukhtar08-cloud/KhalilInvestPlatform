@@ -159,6 +159,223 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ user: userWithoutPassword });
   });
 
+  app.patch("/api/auth/profile", isAuthenticated, async (req, res) => {
+    try {
+      const { name, email } = req.body;
+      const userId = req.user!.id;
+
+      if (email && email !== req.user!.email) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser && existingUser.id !== userId) {
+          return res.status(400).json({ message: "Email already in use" });
+        }
+      }
+
+      const updated = await storage.updateUser(userId, { name, email });
+      if (!updated) {
+        return res.status(404).json({ message: "User not found" });
+      }
+
+      const { password: _, ...userWithoutPassword } = updated;
+      res.json({ user: userWithoutPassword });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update profile" });
+    }
+  });
+
+  app.get("/api/referrals", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const user = await storage.getUser(userId);
+      
+      if (!user?.referralCode) {
+        const referralCode = generateReferralCode(user!.name);
+        await storage.updateUser(userId, { referralCode });
+        user!.referralCode = referralCode;
+      }
+
+      const referrals = await storage.getReferralsByReferrer(userId);
+      
+      const referralsWithUserInfo = await Promise.all(
+        referrals.map(async (referral) => {
+          const referredUser = await storage.getUser(referral.referredId);
+          return {
+            ...referral,
+            referredName: referredUser?.name || "Unknown",
+            referredEmail: referredUser?.email || "Unknown",
+          };
+        })
+      );
+
+      const stats = {
+        totalReferrals: referrals.length,
+        paidReferrals: referrals.filter((r) => r.isPaid).length,
+        pendingReferrals: referrals.filter((r) => !r.isPaid).length,
+        totalEarned: referrals.reduce((sum, r) => sum + parseFloat(r.reward), 0),
+      };
+
+      res.json({
+        referralCode: user!.referralCode,
+        referrals: referralsWithUserInfo,
+        stats,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch referrals" });
+    }
+  });
+
+  app.get("/api/referrals/stats", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const referrals = await storage.getReferralsByReferrer(userId);
+
+      const stats = {
+        totalReferrals: referrals.length,
+        paidReferrals: referrals.filter((r) => r.isPaid).length,
+        pendingReferrals: referrals.filter((r) => !r.isPaid).length,
+        totalEarned: referrals.reduce((sum, r) => sum + parseFloat(r.reward), 0),
+      };
+
+      res.json(stats);
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch referral stats" });
+    }
+  });
+
+  app.get("/api/affiliates/me", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const ambassador = await storage.getAffiliateByUserId(userId);
+
+      if (!ambassador) {
+        return res.json({
+          isAmbassador: false,
+          sales: [],
+        });
+      }
+
+      const sales = await storage.getSalesByAffiliate(ambassador.id);
+      const salesWithProductInfo = await Promise.all(
+        sales.map(async (sale) => {
+          const product = await storage.getProduct(sale.productId);
+          return {
+            ...sale,
+            productName: product?.name || "Unknown Product",
+          };
+        })
+      );
+
+      res.json({
+        isAmbassador: true,
+        ambassador,
+        sales: salesWithProductInfo,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch ambassador data" });
+    }
+  });
+
+  app.get("/api/affiliates/stats", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const ambassador = await storage.getAffiliateByUserId(userId);
+
+      if (!ambassador) {
+        return res.json({
+          isAmbassador: false,
+          totalSales: 0,
+          salesCount: 0,
+          totalCommission: 0,
+        });
+      }
+
+      res.json({
+        isAmbassador: true,
+        tier: ambassador.tier,
+        totalSales: parseFloat(ambassador.totalSales),
+        salesCount: ambassador.salesCount,
+        totalCommission: parseFloat(ambassador.totalCommission),
+        affiliateCode: ambassador.affiliateCode,
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch ambassador stats" });
+    }
+  });
+
+  app.post("/api/affiliates/apply", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const existing = await storage.getAffiliateByUserId(userId);
+
+      if (existing) {
+        return res.status(400).json({ message: "You are already an ambassador" });
+      }
+
+      const user = await storage.getUser(userId);
+      const affiliateCode = generateAffiliateCode(user!.name);
+      const ambassador = await storage.createAffiliate({
+        userId,
+        affiliateCode,
+        isActive: true,
+      });
+
+      res.status(201).json({ ambassador });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to apply for ambassador program" });
+    }
+  });
+
+  app.get("/api/analytics/portfolio", isAuthenticated, async (req, res) => {
+    try {
+      const userId = req.user!.id;
+      const investments = await storage.getInvestmentsByUser(userId);
+      const transactions = await storage.getTransactionsByUser(userId);
+
+      const approvedInvestments = investments.filter((inv) => inv.status === "approved");
+
+      const chartData = [];
+      const today = new Date();
+      
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split("T")[0];
+
+        const transactionsUpToDate = transactions.filter(
+          (t) => new Date(t.createdAt) <= date
+        );
+        
+        const portfolioValue = approvedInvestments.reduce((sum, inv) => {
+          if (new Date(inv.startDate) <= date) {
+            return sum + parseFloat(inv.amount);
+          }
+          return sum;
+        }, 0);
+
+        const totalDeposits = transactionsUpToDate
+          .filter((t) => t.type === "deposit")
+          .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+        const totalWithdrawals = transactionsUpToDate
+          .filter((t) => t.type === "withdraw")
+          .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+
+        const balance = totalDeposits - totalWithdrawals;
+
+        chartData.push({
+          date: dateStr,
+          portfolio: portfolioValue,
+          balance: balance,
+          total: portfolioValue + balance,
+        });
+      }
+
+      res.json({ data: chartData });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch analytics data" });
+    }
+  });
+
   app.get("/api/users", isAdmin, async (_req, res) => {
     try {
       const users = await storage.getAllUsers();
