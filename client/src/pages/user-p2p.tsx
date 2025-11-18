@@ -82,6 +82,9 @@ export default function UserP2P() {
         title: "Order created successfully",
         description: "Your P2P order has been created and is now open",
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders/open/buy"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders/open/sell"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders/my"] });
       queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders"] });
       setIsDialogOpen(false);
       form.reset();
@@ -104,6 +107,9 @@ export default function UserP2P() {
         title: "Order matched successfully",
         description: "You have successfully matched this order. Please complete the payment.",
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders/open/buy"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders/open/sell"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders/my"] });
       queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders"] });
       setSelectedOrder(null);
       setTradeAmount("");
@@ -126,6 +132,9 @@ export default function UserP2P() {
         title: "Order cancelled",
         description: "Your order has been cancelled successfully",
       });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders/open/buy"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders/open/sell"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders/my"] });
       queryClient.invalidateQueries({ queryKey: ["/api/p2p/orders"] });
     },
     onError: (error: any) => {

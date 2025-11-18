@@ -322,6 +322,7 @@ export const transactions = pgTable("transactions", {
   type: transactionTypeEnum("type").notNull(),
   amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
   status: transactionStatusEnum("status").notNull().default("completed"),
+  paymentMethod: text("payment_method"),
   description: text("description"),
   recipientId: varchar("recipient_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -332,6 +333,7 @@ export const insertTransactionSchema = createInsertSchema(transactions).omit({
   createdAt: true,
 }).extend({
   amount: z.coerce.number().positive("Amount must be positive"),
+  paymentMethod: z.string().optional(),
 });
 
 export type InsertTransaction = z.infer<typeof insertTransactionSchema>;

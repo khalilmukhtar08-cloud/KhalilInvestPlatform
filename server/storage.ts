@@ -144,8 +144,8 @@ export interface IStorage {
   getTransactionsByUser(userId: string): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
   getUserBalance(userId: string): Promise<string>;
-  deposit(userId: string, amount: number, description?: string): Promise<Transaction>;
-  withdraw(userId: string, amount: number, description?: string): Promise<Transaction>;
+  deposit(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction>;
+  withdraw(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction>;
   transfer(fromUserId: string, toUserId: string, amount: number, description?: string): Promise<{ senderTransaction: Transaction; recipientTransaction: Transaction }>;
 
   // P2P Orders
@@ -545,7 +545,7 @@ export class DatabaseStorage implements IStorage {
     return user?.balance || "0.00";
   }
 
-  async deposit(userId: string, amount: number, description?: string): Promise<Transaction> {
+  async deposit(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction> {
     return await db.transaction(async (tx) => {
       const [user] = await tx.select().from(users).where(eq(users.id, userId)).limit(1);
       
@@ -562,6 +562,7 @@ export class DatabaseStorage implements IStorage {
         type: "deposit",
         amount: amount.toString(),
         status: "completed",
+        paymentMethod,
         description: description || "Deposit to wallet",
       }).returning();
 
@@ -569,7 +570,7 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
-  async withdraw(userId: string, amount: number, description?: string): Promise<Transaction> {
+  async withdraw(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction> {
     return await db.transaction(async (tx) => {
       const result = await tx.update(users)
         .set({ balance: sql`${users.balance} - ${amount.toString()}` })
@@ -592,6 +593,7 @@ export class DatabaseStorage implements IStorage {
         type: "withdraw",
         amount: amount.toString(),
         status: "completed",
+        paymentMethod,
         description: description || "Withdrawal from wallet",
       }).returning();
 

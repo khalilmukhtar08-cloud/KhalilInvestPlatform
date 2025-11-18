@@ -1151,7 +1151,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transaction = await storage.deposit(
         req.user!.id, 
         validatedData.amount, 
-        validatedData.description || undefined
+        validatedData.description || undefined,
+        validatedData.paymentMethod || undefined
       );
       const balance = await storage.getUserBalance(req.user!.id);
       
@@ -1171,7 +1172,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const transaction = await storage.withdraw(
         req.user!.id, 
         validatedData.amount, 
-        validatedData.description || undefined
+        validatedData.description || undefined,
+        validatedData.paymentMethod || undefined
       );
       const balance = await storage.getUserBalance(req.user!.id);
       
