@@ -211,7 +211,12 @@ export default function UserProfile() {
                       variant="outline"
                       onClick={() => {
                         setIsEditing(false);
-                        form.reset();
+                        if (userData?.user) {
+                          form.reset({
+                            name: userData.user.name,
+                            email: userData.user.email,
+                          });
+                        }
                       }}
                       data-testid="button-cancel"
                     >
