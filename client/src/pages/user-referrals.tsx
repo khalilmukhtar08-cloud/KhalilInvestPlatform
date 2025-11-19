@@ -193,7 +193,7 @@ export default function UserReferrals() {
       </div>
 
       <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "referrals" | "ambassador")} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2" data-testid="tablist-referrals-main">
           <TabsTrigger value="referrals" data-testid="tab-referrals">
             <UserPlus className="w-4 h-4 mr-2" />
             Referral Program

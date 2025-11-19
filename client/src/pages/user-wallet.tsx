@@ -342,7 +342,7 @@ export default function UserWallet() {
       </div>
 
       <Tabs value={mainTab} onValueChange={(v) => setMainTab(v as "wallet" | "p2p")} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-2" data-testid="tablist-wallet-main">
           <TabsTrigger value="wallet" data-testid="tab-wallet">
             <Wallet className="w-4 h-4 mr-2" />
             Wallet
@@ -922,7 +922,7 @@ export default function UserWallet() {
           </div>
 
           <Tabs value={selectedP2PTab} onValueChange={(value) => setSelectedP2PTab(value as "buy" | "sell" | "my-orders")}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-3" data-testid="tablist-p2p-orders">
               <TabsTrigger value="buy" data-testid="tab-buy-orders">Buy Orders</TabsTrigger>
               <TabsTrigger value="sell" data-testid="tab-sell-orders">Sell Orders</TabsTrigger>
               <TabsTrigger value="my-orders" data-testid="tab-my-orders">My Orders</TabsTrigger>

@@ -4,6 +4,18 @@
 
 The Khalil Investment Platform is a comprehensive multi-sector investment ecosystem that enables users to manage investments across stocks, cryptocurrency, real estate, e-commerce, and social media in a unified dashboard. The platform features role-based access control with separate admin and user experiences, real-time market data integration, and commission-based revenue generation through referrals and affiliates.
 
+## Recent Changes
+
+**November 19, 2025 - Module Reorganization**:
+- Merged P2P Trading functionality into Wallet page using a tabbed interface
+  - Wallet tab: Deposit, Withdraw, Transfer operations
+  - P2P Trading tab: Buy Orders, Sell Orders, My Orders
+- Merged Ambassador Program into Referrals page using tabs
+  - Referral Program tab: Referral code management, rewards tracking
+  - Ambassador Program tab: Application, tier status, sales tracking
+- Simplified navigation by removing standalone P2P and Ambassador menu items
+- Admin P2P Management remains as separate admin panel feature
+
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
