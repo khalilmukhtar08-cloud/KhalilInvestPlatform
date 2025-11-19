@@ -8,10 +8,9 @@ import {
   Settings,
   LogOut,
   Wallet,
-  ArrowUpDown,
   User,
   UserPlus,
-  Award,
+  ArrowUpDown,
 } from "lucide-react";
 import {
   Sidebar,
@@ -58,11 +57,6 @@ export function AppSidebar({
       icon: Wallet,
     },
     {
-      title: "P2P Trading",
-      url: "/dashboard/p2p",
-      icon: ArrowUpDown,
-    },
-    {
       title: "Investments",
       url: "/dashboard/investments",
       icon: TrendingUp,
@@ -91,11 +85,6 @@ export function AppSidebar({
       title: "Referrals",
       url: "/dashboard/referrals",
       icon: UserPlus,
-    },
-    {
-      title: "Ambassador",
-      url: "/dashboard/ambassador",
-      icon: Award,
     },
   ];
 
