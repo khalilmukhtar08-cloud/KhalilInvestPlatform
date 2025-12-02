@@ -19,8 +19,12 @@ import {
   insertEmailNotificationSchema,
   insertUserPreferencesSchema,
   insertTransactionSchema,
+  insertPartnerApiSchema,
+  insertPartnerProjectSchema,
+  insertPartnerInvestmentSchema,
   type User 
 } from "@shared/schema";
+import crypto from "crypto";
 
 import type { User as SchemaUser } from "@shared/schema";
 
@@ -1538,6 +1542,384 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: "Order deleted successfully" });
     } catch (error: any) {
       res.status(500).json({ message: error.message || "Failed to delete order" });
+    }
+  });
+
+  // =====================
+  // Partner API Routes (Admin)
+  // =====================
+
+  app.get("/api/admin/partners", isAdmin, async (_req, res) => {
+    try {
+      const partners = await storage.getAllPartnerApis();
+      res.json({ partners });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch partners" });
+    }
+  });
+
+  app.get("/api/admin/partners/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const partner = await storage.getPartnerApi(id);
+      
+      if (!partner) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      
+      res.json({ partner });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch partner" });
+    }
+  });
+
+  app.post("/api/admin/partners", isAdmin, async (req, res) => {
+    try {
+      const validatedData = insertPartnerApiSchema.parse(req.body);
+      const partner = await storage.createPartnerApi(validatedData);
+      res.status(201).json({ partner });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create partner" });
+    }
+  });
+
+  app.patch("/api/admin/partners/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getPartnerApi(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      
+      const updated = await storage.updatePartnerApi(id, req.body);
+      res.json({ partner: updated });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update partner" });
+    }
+  });
+
+  app.delete("/api/admin/partners/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getPartnerApi(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      
+      await storage.deletePartnerApi(id);
+      res.json({ message: "Partner deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete partner" });
+    }
+  });
+
+  app.post("/api/admin/partners/:id/toggle", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getPartnerApi(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      
+      const updated = await storage.updatePartnerApi(id, { isActive: !existing.isActive });
+      res.json({ partner: updated, message: `Partner ${updated?.isActive ? 'activated' : 'deactivated'} successfully` });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to toggle partner status" });
+    }
+  });
+
+  app.post("/api/admin/partners/:id/sync", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getPartnerApi(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      
+      const updated = await storage.updatePartnerApi(id, { lastSyncAt: new Date() });
+      res.json({ partner: updated, message: "Partner sync completed" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to sync partner" });
+    }
+  });
+
+  // =====================
+  // Partner Projects Routes (Admin)
+  // =====================
+
+  app.get("/api/admin/partner-projects", isAdmin, async (_req, res) => {
+    try {
+      const projects = await storage.getAllPartnerProjects();
+      res.json({ projects });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch partner projects" });
+    }
+  });
+
+  app.get("/api/admin/partner-projects/:partnerId", isAdmin, async (req, res) => {
+    try {
+      const { partnerId } = req.params;
+      const projects = await storage.getPartnerProjectsByPartner(partnerId);
+      res.json({ projects });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch partner projects" });
+    }
+  });
+
+  app.post("/api/admin/partner-projects", isAdmin, async (req, res) => {
+    try {
+      const validatedData = insertPartnerProjectSchema.parse(req.body);
+      const project = await storage.createPartnerProject(validatedData);
+      res.status(201).json({ project });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to create partner project" });
+    }
+  });
+
+  app.patch("/api/admin/partner-projects/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getPartnerProject(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "Partner project not found" });
+      }
+      
+      const updated = await storage.updatePartnerProject(id, req.body);
+      res.json({ project: updated });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update partner project" });
+    }
+  });
+
+  app.delete("/api/admin/partner-projects/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getPartnerProject(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "Partner project not found" });
+      }
+      
+      await storage.deletePartnerProject(id);
+      res.json({ message: "Partner project deleted successfully" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to delete partner project" });
+    }
+  });
+
+  // =====================
+  // Partner Investments Routes (Admin)
+  // =====================
+
+  app.get("/api/admin/partner-investments", isAdmin, async (_req, res) => {
+    try {
+      const investments = await storage.getAllPartnerInvestments();
+      res.json({ investments });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch partner investments" });
+    }
+  });
+
+  app.patch("/api/admin/partner-investments/:id", isAdmin, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const existing = await storage.getPartnerInvestment(id);
+      
+      if (!existing) {
+        return res.status(404).json({ message: "Partner investment not found" });
+      }
+      
+      const updated = await storage.updatePartnerInvestment(id, req.body);
+      res.json({ investment: updated });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to update partner investment" });
+    }
+  });
+
+  // =====================
+  // Partner Projects Routes (User)
+  // =====================
+
+  app.get("/api/partner-projects", isAuthenticated, async (_req, res) => {
+    try {
+      const projects = await storage.getActivePartnerProjects();
+      const projectsWithPartner = await Promise.all(
+        projects.map(async (project) => {
+          const partner = await storage.getPartnerApi(project.partnerId);
+          return {
+            ...project,
+            partnerName: partner?.companyName || "Unknown Partner",
+            partnerLogo: partner?.logo,
+            partnerSector: partner?.sector,
+          };
+        })
+      );
+      res.json({ projects: projectsWithPartner });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch partner projects" });
+    }
+  });
+
+  app.get("/api/partner-projects/:id", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const project = await storage.getPartnerProject(id);
+      
+      if (!project) {
+        return res.status(404).json({ message: "Partner project not found" });
+      }
+      
+      const partner = await storage.getPartnerApi(project.partnerId);
+      res.json({ 
+        project: {
+          ...project,
+          partnerName: partner?.companyName || "Unknown Partner",
+          partnerLogo: partner?.logo,
+          partnerSector: partner?.sector,
+        }
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch partner project" });
+    }
+  });
+
+  // =====================
+  // Partner Investments Routes (User)
+  // =====================
+
+  app.get("/api/partner-investments", isAuthenticated, async (req, res) => {
+    try {
+      const investments = await storage.getPartnerInvestmentsByUser(req.user!.id);
+      const investmentsWithDetails = await Promise.all(
+        investments.map(async (investment) => {
+          const project = await storage.getPartnerProject(investment.partnerProjectId);
+          const partner = await storage.getPartnerApi(investment.partnerId);
+          return {
+            ...investment,
+            projectName: project?.name || "Unknown Project",
+            partnerName: partner?.companyName || "Unknown Partner",
+          };
+        })
+      );
+      res.json({ investments: investmentsWithDetails });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch partner investments" });
+    }
+  });
+
+  app.post("/api/partner-investments", isAuthenticated, async (req, res) => {
+    try {
+      const validatedData = insertPartnerInvestmentSchema.parse(req.body);
+      
+      const project = await storage.getPartnerProject(validatedData.partnerProjectId);
+      if (!project) {
+        return res.status(404).json({ message: "Partner project not found" });
+      }
+      
+      const partner = await storage.getPartnerApi(project.partnerId);
+      if (!partner || !partner.isActive) {
+        return res.status(400).json({ message: "Partner is not available" });
+      }
+      
+      const commissionRate = parseFloat(partner.commissionRate) / 100;
+      const commissionAmount = validatedData.amount * commissionRate;
+      
+      const userBalance = await storage.getUserBalance(req.user!.id);
+      if (parseFloat(userBalance) < validatedData.amount) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+      
+      await storage.withdraw(
+        req.user!.id,
+        validatedData.amount,
+        `Investment in ${project.name} via ${partner.companyName}`
+      );
+      
+      const investment = await storage.createPartnerInvestment({
+        userId: req.user!.id,
+        partnerId: partner.id,
+        partnerProjectId: project.id,
+        amount: validatedData.amount,
+        currency: validatedData.currency || "USD",
+        status: "pending",
+      } as any);
+      
+      const updated = await storage.updatePartnerInvestment(investment.id, {
+        commissionAmount: commissionAmount.toString(),
+      });
+      
+      res.status(201).json({ investment: updated });
+    } catch (error: any) {
+      if (error instanceof InsufficientFundsError) {
+        return res.status(400).json({ message: "Insufficient balance" });
+      }
+      res.status(400).json({ message: error.message || "Failed to create partner investment" });
+    }
+  });
+
+  // =====================
+  // Partner Webhook Routes (No Auth)
+  // =====================
+
+  app.post("/api/webhooks/partner/:partnerId/roi", async (req, res) => {
+    try {
+      const { partnerId } = req.params;
+      
+      const partner = await storage.getPartnerApi(partnerId);
+      if (!partner) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      
+      const rawBody = JSON.stringify(req.body);
+      const signature = req.headers['x-webhook-signature'] as string;
+      const expectedSignature = crypto.createHmac('sha256', partner.webhookSecret || '').update(rawBody).digest('hex');
+      
+      if (signature !== expectedSignature) {
+        return res.status(401).json({ message: "Invalid signature" });
+      }
+      
+      const { investmentId, roiAmount, transactionId } = req.body;
+      
+      if (!investmentId || roiAmount === undefined) {
+        return res.status(400).json({ message: "investmentId and roiAmount are required" });
+      }
+      
+      const investment = await storage.getPartnerInvestment(investmentId);
+      if (!investment) {
+        return res.status(404).json({ message: "Investment not found" });
+      }
+      
+      if (investment.partnerId !== partnerId) {
+        return res.status(403).json({ message: "Investment does not belong to this partner" });
+      }
+      
+      const previousTotal = parseFloat(investment.roiAccrued);
+      const newTotal = previousTotal + roiAmount;
+      
+      await storage.updatePartnerInvestment(investmentId, {
+        roiAccrued: newTotal.toString(),
+        lastWebhookAt: new Date(),
+      });
+      
+      await storage.createRoiUpdate({
+        partnerInvestmentId: investmentId,
+        externalTransactionId: transactionId || null,
+        roiAmount: roiAmount,
+        previousTotal: previousTotal,
+        newTotal: newTotal,
+        status: "processed",
+        rawPayload: rawBody,
+      } as any);
+      
+      res.status(200).json({ message: "ROI update processed successfully" });
+    } catch (error: any) {
+      console.error("Webhook error:", error);
+      res.status(500).json({ message: error.message || "Failed to process webhook" });
     }
   });
 
