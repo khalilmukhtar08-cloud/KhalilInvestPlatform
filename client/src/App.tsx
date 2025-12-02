@@ -70,7 +70,7 @@ function AppContent() {
 
   const checkAuthStatus = async () => {
     try {
-      const response = await apiRequest('GET', '/api/auth/check');
+      const response = await apiRequest('GET', '/api/auth/me');
       const data = await response.json();
       
       if (data.user) {
