@@ -11,6 +11,7 @@ import {
   User,
   UserPlus,
   ArrowUpDown,
+  Handshake,
 } from "lucide-react";
 import {
   Sidebar,
@@ -123,6 +124,11 @@ export function AppSidebar({
       title: "P2P Management",
       url: "/admin/p2p",
       icon: ArrowUpDown,
+    },
+    {
+      title: "Partners",
+      url: "/admin/partners",
+      icon: Handshake,
     },
     {
       title: "Settings",

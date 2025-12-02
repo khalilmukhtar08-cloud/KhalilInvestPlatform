@@ -29,6 +29,7 @@ import AdminEcommerce from "@/pages/admin-ecommerce";
 import AdminSocial from "@/pages/admin-social";
 import AdminP2P from "@/pages/admin-p2p";
 import AdminSettings from "@/pages/admin-settings";
+import AdminPartners from "@/pages/admin-partners";
 
 type Page = 
   | "landing" 
@@ -50,7 +51,8 @@ type Page =
   | "admin/ecommerce"
   | "admin/social"
   | "admin/p2p"
-  | "admin/settings";
+  | "admin/settings"
+  | "admin/partners";
 
 type UserRole = "admin" | "user" | null;
 
@@ -237,6 +239,8 @@ function AppContent() {
         return <AdminP2P />;
       case "admin/settings":
         return <AdminSettings />;
+      case "admin/partners":
+        return <AdminPartners />;
       default:
         return <Landing onNavigateToLogin={() => setCurrentPage("login")} onNavigateToRegister={() => setCurrentPage("register")} onNavigateToTerms={() => setCurrentPage("terms")} />;
     }
