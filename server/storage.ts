@@ -14,6 +14,10 @@ import {
   userPreferences,
   transactions,
   p2pOrders,
+  partnerApis,
+  partnerProjects,
+  partnerInvestments,
+  roiUpdates,
   type User,
   type InsertUser,
   type Investment,
@@ -42,6 +46,14 @@ import {
   type InsertTransaction,
   type P2POrder,
   type InsertP2POrder,
+  type PartnerApi,
+  type InsertPartnerApi,
+  type PartnerProject,
+  type InsertPartnerProject,
+  type PartnerInvestment,
+  type InsertPartnerInvestment,
+  type RoiUpdate,
+  type InsertRoiUpdate,
 } from "@shared/schema";
 import { eq, desc, and, sql } from "drizzle-orm";
 import { InsufficientFundsError, UserNotFoundError } from "./errors";
@@ -159,6 +171,38 @@ export interface IStorage {
   completeP2POrder(orderId: string): Promise<void>;
   cancelP2POrder(orderId: string): Promise<void>;
   deleteP2POrder(id: string): Promise<void>;
+
+  // Partner APIs
+  getPartnerApi(id: string): Promise<PartnerApi | undefined>;
+  getAllPartnerApis(): Promise<PartnerApi[]>;
+  getActivePartnerApis(): Promise<PartnerApi[]>;
+  createPartnerApi(api: InsertPartnerApi): Promise<PartnerApi>;
+  updatePartnerApi(id: string, data: Partial<PartnerApi>): Promise<PartnerApi | undefined>;
+  deletePartnerApi(id: string): Promise<void>;
+
+  // Partner Projects
+  getPartnerProject(id: string): Promise<PartnerProject | undefined>;
+  getPartnerProjectsByPartner(partnerId: string): Promise<PartnerProject[]>;
+  getAllPartnerProjects(): Promise<PartnerProject[]>;
+  getActivePartnerProjects(): Promise<PartnerProject[]>;
+  createPartnerProject(project: InsertPartnerProject): Promise<PartnerProject>;
+  updatePartnerProject(id: string, data: Partial<PartnerProject>): Promise<PartnerProject | undefined>;
+  deletePartnerProject(id: string): Promise<void>;
+  upsertPartnerProject(partnerId: string, externalId: string, data: Partial<InsertPartnerProject>): Promise<PartnerProject>;
+
+  // Partner Investments
+  getPartnerInvestment(id: string): Promise<PartnerInvestment | undefined>;
+  getPartnerInvestmentsByUser(userId: string): Promise<PartnerInvestment[]>;
+  getPartnerInvestmentsByProject(projectId: string): Promise<PartnerInvestment[]>;
+  getAllPartnerInvestments(): Promise<PartnerInvestment[]>;
+  createPartnerInvestment(investment: InsertPartnerInvestment): Promise<PartnerInvestment>;
+  updatePartnerInvestment(id: string, data: Partial<PartnerInvestment>): Promise<PartnerInvestment | undefined>;
+  deletePartnerInvestment(id: string): Promise<void>;
+
+  // ROI Updates
+  getRoiUpdate(id: string): Promise<RoiUpdate | undefined>;
+  getRoiUpdatesByInvestment(investmentId: string): Promise<RoiUpdate[]>;
+  createRoiUpdate(update: InsertRoiUpdate): Promise<RoiUpdate>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -756,6 +800,161 @@ export class DatabaseStorage implements IStorage {
 
   async deleteP2POrder(id: string): Promise<void> {
     await db.delete(p2pOrders).where(eq(p2pOrders.id, id));
+  }
+
+  // Partner APIs
+  async getPartnerApi(id: string): Promise<PartnerApi | undefined> {
+    const [api] = await db.select().from(partnerApis).where(eq(partnerApis.id, id)).limit(1);
+    return api;
+  }
+
+  async getAllPartnerApis(): Promise<PartnerApi[]> {
+    return db.select().from(partnerApis).orderBy(desc(partnerApis.createdAt));
+  }
+
+  async getActivePartnerApis(): Promise<PartnerApi[]> {
+    return db.select().from(partnerApis).where(eq(partnerApis.isActive, true)).orderBy(desc(partnerApis.createdAt));
+  }
+
+  async createPartnerApi(api: InsertPartnerApi): Promise<PartnerApi> {
+    const [newApi] = await db.insert(partnerApis).values({
+      ...api,
+      commissionRate: api.commissionRate ? api.commissionRate.toString() : "5.00",
+    }).returning();
+    return newApi;
+  }
+
+  async updatePartnerApi(id: string, data: Partial<PartnerApi>): Promise<PartnerApi | undefined> {
+    const [updated] = await db.update(partnerApis).set({ ...data, updatedAt: new Date() }).where(eq(partnerApis.id, id)).returning();
+    return updated;
+  }
+
+  async deletePartnerApi(id: string): Promise<void> {
+    await db.delete(partnerApis).where(eq(partnerApis.id, id));
+  }
+
+  // Partner Projects
+  async getPartnerProject(id: string): Promise<PartnerProject | undefined> {
+    const [project] = await db.select().from(partnerProjects).where(eq(partnerProjects.id, id)).limit(1);
+    return project;
+  }
+
+  async getPartnerProjectsByPartner(partnerId: string): Promise<PartnerProject[]> {
+    return db.select().from(partnerProjects).where(eq(partnerProjects.partnerId, partnerId)).orderBy(desc(partnerProjects.createdAt));
+  }
+
+  async getAllPartnerProjects(): Promise<PartnerProject[]> {
+    return db.select().from(partnerProjects).orderBy(desc(partnerProjects.createdAt));
+  }
+
+  async getActivePartnerProjects(): Promise<PartnerProject[]> {
+    return db.select().from(partnerProjects).where(eq(partnerProjects.status, "active")).orderBy(desc(partnerProjects.createdAt));
+  }
+
+  async createPartnerProject(project: InsertPartnerProject): Promise<PartnerProject> {
+    const [newProject] = await db.insert(partnerProjects).values({
+      ...project,
+      minAmount: project.minAmount ? project.minAmount.toString() : "100.00",
+      maxAmount: project.maxAmount ? project.maxAmount.toString() : undefined,
+      expectedRoi: project.expectedRoi ? project.expectedRoi.toString() : undefined,
+    }).returning();
+    return newProject;
+  }
+
+  async updatePartnerProject(id: string, data: Partial<PartnerProject>): Promise<PartnerProject | undefined> {
+    const [updated] = await db.update(partnerProjects).set({ ...data, updatedAt: new Date() }).where(eq(partnerProjects.id, id)).returning();
+    return updated;
+  }
+
+  async deletePartnerProject(id: string): Promise<void> {
+    await db.delete(partnerProjects).where(eq(partnerProjects.id, id));
+  }
+
+  async upsertPartnerProject(partnerId: string, externalId: string, data: Partial<InsertPartnerProject>): Promise<PartnerProject> {
+    const [existing] = await db.select().from(partnerProjects)
+      .where(and(eq(partnerProjects.partnerId, partnerId), eq(partnerProjects.externalId, externalId)))
+      .limit(1);
+
+    if (existing) {
+      const [updated] = await db.update(partnerProjects)
+        .set({
+          ...data,
+          minAmount: data.minAmount ? data.minAmount.toString() : existing.minAmount,
+          maxAmount: data.maxAmount ? data.maxAmount.toString() : existing.maxAmount,
+          expectedRoi: data.expectedRoi ? data.expectedRoi.toString() : existing.expectedRoi,
+          updatedAt: new Date(),
+          lastSyncedAt: new Date(),
+        })
+        .where(eq(partnerProjects.id, existing.id))
+        .returning();
+      return updated;
+    } else {
+      const [newProject] = await db.insert(partnerProjects).values({
+        partnerId,
+        externalId,
+        name: data.name || "Unknown Project",
+        ...data,
+        minAmount: data.minAmount ? data.minAmount.toString() : "100.00",
+        maxAmount: data.maxAmount ? data.maxAmount.toString() : undefined,
+        expectedRoi: data.expectedRoi ? data.expectedRoi.toString() : undefined,
+      }).returning();
+      return newProject;
+    }
+  }
+
+  // Partner Investments
+  async getPartnerInvestment(id: string): Promise<PartnerInvestment | undefined> {
+    const [investment] = await db.select().from(partnerInvestments).where(eq(partnerInvestments.id, id)).limit(1);
+    return investment;
+  }
+
+  async getPartnerInvestmentsByUser(userId: string): Promise<PartnerInvestment[]> {
+    return db.select().from(partnerInvestments).where(eq(partnerInvestments.userId, userId)).orderBy(desc(partnerInvestments.createdAt));
+  }
+
+  async getPartnerInvestmentsByProject(projectId: string): Promise<PartnerInvestment[]> {
+    return db.select().from(partnerInvestments).where(eq(partnerInvestments.partnerProjectId, projectId)).orderBy(desc(partnerInvestments.createdAt));
+  }
+
+  async getAllPartnerInvestments(): Promise<PartnerInvestment[]> {
+    return db.select().from(partnerInvestments).orderBy(desc(partnerInvestments.createdAt));
+  }
+
+  async createPartnerInvestment(investment: InsertPartnerInvestment): Promise<PartnerInvestment> {
+    const [newInvestment] = await db.insert(partnerInvestments).values({
+      ...investment,
+      amount: investment.amount.toString(),
+    }).returning();
+    return newInvestment;
+  }
+
+  async updatePartnerInvestment(id: string, data: Partial<PartnerInvestment>): Promise<PartnerInvestment | undefined> {
+    const [updated] = await db.update(partnerInvestments).set({ ...data, updatedAt: new Date() }).where(eq(partnerInvestments.id, id)).returning();
+    return updated;
+  }
+
+  async deletePartnerInvestment(id: string): Promise<void> {
+    await db.delete(partnerInvestments).where(eq(partnerInvestments.id, id));
+  }
+
+  // ROI Updates
+  async getRoiUpdate(id: string): Promise<RoiUpdate | undefined> {
+    const [update] = await db.select().from(roiUpdates).where(eq(roiUpdates.id, id)).limit(1);
+    return update;
+  }
+
+  async getRoiUpdatesByInvestment(investmentId: string): Promise<RoiUpdate[]> {
+    return db.select().from(roiUpdates).where(eq(roiUpdates.partnerInvestmentId, investmentId)).orderBy(desc(roiUpdates.processedAt));
+  }
+
+  async createRoiUpdate(update: InsertRoiUpdate): Promise<RoiUpdate> {
+    const [newUpdate] = await db.insert(roiUpdates).values({
+      ...update,
+      roiAmount: update.roiAmount.toString(),
+      previousTotal: update.previousTotal ? update.previousTotal.toString() : "0",
+      newTotal: update.newTotal.toString(),
+    }).returning();
+    return newUpdate;
   }
 }
 
