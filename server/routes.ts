@@ -1853,6 +1853,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         commissionAmount: commissionAmount.toString(),
       });
       
+      try {
+        await emailService.sendPartnerInvestmentConfirmation(
+          req.user!.email,
+          req.user!.name,
+          project.name,
+          partner.companyName,
+          validatedData.amount,
+          commissionAmount,
+          validatedData.currency || "USD"
+        );
+      } catch (emailError) {
+        console.error("Failed to send partner investment email:", emailError);
+      }
+      
       res.status(201).json({ investment: updated });
     } catch (error: any) {
       if (error instanceof InsufficientFundsError) {
@@ -1915,6 +1929,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: "processed",
         rawPayload: rawBody,
       } as any);
+      
+      try {
+        const user = await storage.getUser(investment.userId);
+        const project = await storage.getPartnerProject(investment.partnerProjectId);
+        if (user && project) {
+          await emailService.sendRoiUpdateNotification(
+            user.email,
+            user.name,
+            project.name,
+            roiAmount,
+            newTotal,
+            investment.currency
+          );
+        }
+      } catch (emailError) {
+        console.error("Failed to send ROI update email:", emailError);
+      }
       
       res.status(200).json({ message: "ROI update processed successfully" });
     } catch (error: any) {

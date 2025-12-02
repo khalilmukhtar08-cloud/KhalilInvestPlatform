@@ -143,6 +143,117 @@ export class EmailService {
     return this.sendEmail(toEmail, subject, html);
   }
 
+  async sendPartnerInvestmentConfirmation(
+    toEmail: string,
+    userName: string,
+    projectName: string,
+    partnerName: string,
+    amount: number,
+    commission: number,
+    currency: string = "USD"
+  ) {
+    const subject = "Partner Investment Confirmation - Khalil Investment Company";
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4F46E5;">Partner Investment Submitted</h2>
+        <p>Hi ${userName},</p>
+        <p>Your investment request has been submitted successfully through our partner platform.</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #333;">Investment Details</h3>
+          <p style="margin: 5px 0;"><strong>Partner:</strong> ${partnerName}</p>
+          <p style="margin: 5px 0;"><strong>Project:</strong> ${projectName}</p>
+          <p style="margin: 5px 0;"><strong>Investment Amount:</strong> ${currency} ${amount.toLocaleString()}</p>
+          <p style="margin: 5px 0;"><strong>Platform Commission:</strong> ${currency} ${commission.toFixed(2)}</p>
+          <p style="margin: 5px 0;"><strong>Total Deducted:</strong> ${currency} ${(amount + commission).toLocaleString()}</p>
+        </div>
+        <p>Your investment is now being processed. You can track its status in your dashboard.</p>
+        <p style="color: #666;">Note: Once confirmed by the partner, your investment will start earning returns based on the project's ROI.</p>
+        <br>
+        <p>Best regards,<br>Khalil Investment Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(toEmail, subject, html);
+  }
+
+  async sendPartnerInvestmentStatusUpdate(
+    toEmail: string,
+    userName: string,
+    projectName: string,
+    partnerName: string,
+    status: string,
+    amount: number,
+    currency: string = "USD"
+  ) {
+    const statusConfig: Record<string, { color: string; message: string }> = {
+      sent: {
+        color: "#3B82F6",
+        message: "Your investment has been sent to the partner for processing."
+      },
+      confirmed: {
+        color: "#10B981",
+        message: "Great news! Your investment has been confirmed by the partner and is now active."
+      },
+      failed: {
+        color: "#EF4444",
+        message: "Unfortunately, there was an issue processing your investment. Please contact support."
+      },
+      completed: {
+        color: "#8B5CF6",
+        message: "Your investment has been completed and the returns have been processed."
+      }
+    };
+
+    const config = statusConfig[status] || { color: "#6B7280", message: "Your investment status has been updated." };
+
+    const subject = `Partner Investment ${status.charAt(0).toUpperCase() + status.slice(1)} - Khalil Investment Company`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: ${config.color};">Investment Status Update: ${status.toUpperCase()}</h2>
+        <p>Hi ${userName},</p>
+        <p>${config.message}</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>Partner:</strong> ${partnerName}</p>
+          <p style="margin: 5px 0;"><strong>Project:</strong> ${projectName}</p>
+          <p style="margin: 5px 0;"><strong>Amount:</strong> ${currency} ${amount.toLocaleString()}</p>
+          <p style="margin: 5px 0;"><strong>Status:</strong> <span style="color: ${config.color}; font-weight: bold;">${status.toUpperCase()}</span></p>
+        </div>
+        <p>You can view the full details in your investment dashboard.</p>
+        <br>
+        <p>Best regards,<br>Khalil Investment Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(toEmail, subject, html);
+  }
+
+  async sendRoiUpdateNotification(
+    toEmail: string,
+    userName: string,
+    projectName: string,
+    roiAmount: number,
+    totalRoi: number,
+    currency: string = "USD"
+  ) {
+    const subject = "ROI Update - Khalil Investment Company";
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #10B981;">You've Earned Returns!</h2>
+        <p>Hi ${userName},</p>
+        <p>Great news! Your investment in "${projectName}" has generated returns.</p>
+        <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
+          <p style="margin: 5px 0;"><strong>This Update:</strong> <span style="color: #10B981; font-weight: bold;">+${currency} ${roiAmount.toFixed(2)}</span></p>
+          <p style="margin: 5px 0;"><strong>Total ROI Earned:</strong> ${currency} ${totalRoi.toFixed(2)}</p>
+        </div>
+        <p>Keep investing to grow your returns!</p>
+        <br>
+        <p>Best regards,<br>Khalil Investment Team</p>
+      </div>
+    `;
+
+    return this.sendEmail(toEmail, subject, html);
+  }
+
   async sendLoginNotification(toEmail: string, userName: string, loginTime: Date, ipAddress?: string, userAgent?: string) {
     const formattedTime = loginTime.toLocaleString('en-US', {
       weekday: 'long',
