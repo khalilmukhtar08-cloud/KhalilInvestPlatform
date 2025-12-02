@@ -16,6 +16,11 @@ export const transactionStatusEnum = pgEnum("transaction_status", ["pending", "c
 export const p2pOrderTypeEnum = pgEnum("p2p_order_type", ["buy", "sell"]);
 export const p2pOrderStatusEnum = pgEnum("p2p_order_status", ["open", "in_progress", "completed", "cancelled"]);
 
+// Partner Investment Enums
+export const partnerSectorEnum = pgEnum("partner_sector", ["stocks", "crypto", "real_estate", "crowdfunding", "bonds", "commodities"]);
+export const partnerStatusEnum = pgEnum("partner_status", ["pending", "active", "inactive", "rejected"]);
+export const partnerInvestmentStatusEnum = pgEnum("partner_investment_status", ["pending", "sent", "confirmed", "failed", "completed"]);
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -374,3 +379,136 @@ export const insertP2POrderSchema = createInsertSchema(p2pOrders).omit({
 
 export type InsertP2POrder = z.infer<typeof insertP2POrderSchema>;
 export type P2POrder = typeof p2pOrders.$inferSelect;
+
+// Partner APIs table - External investment companies
+export const partnerApis = pgTable("partner_apis", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  companyName: text("company_name").notNull(),
+  baseUrl: text("base_url").notNull(),
+  apiKey: text("api_key").notNull(),
+  apiSecret: text("api_secret"),
+  webhookSecret: text("webhook_secret"),
+  sector: partnerSectorEnum("sector").notNull(),
+  logo: text("logo"),
+  description: text("description"),
+  status: partnerStatusEnum("status").notNull().default("pending"),
+  commissionRate: decimal("commission_rate", { precision: 5, scale: 2 }).notNull().default("5.00"),
+  isActive: boolean("is_active").notNull().default(false),
+  lastSyncAt: timestamp("last_sync_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertPartnerApiSchema = createInsertSchema(partnerApis).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastSyncAt: true,
+}).extend({
+  commissionRate: z.coerce.number().min(0).max(100).optional(),
+});
+
+export type InsertPartnerApi = z.infer<typeof insertPartnerApiSchema>;
+export type PartnerApi = typeof partnerApis.$inferSelect;
+
+// Partner Projects table - Projects fetched from partner APIs
+export const partnerProjects = pgTable("partner_projects", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  partnerId: varchar("partner_id").notNull().references(() => partnerApis.id, { onDelete: "cascade" }),
+  externalId: text("external_id").notNull(),
+  name: text("name").notNull(),
+  description: text("description"),
+  sector: text("sector"),
+  minAmount: decimal("min_amount", { precision: 12, scale: 2 }).notNull().default("100.00"),
+  maxAmount: decimal("max_amount", { precision: 12, scale: 2 }),
+  currency: text("currency").notNull().default("USD"),
+  expectedRoi: decimal("expected_roi", { precision: 5, scale: 2 }),
+  duration: integer("duration"),
+  durationUnit: text("duration_unit").default("months"),
+  riskLevel: text("risk_level").default("medium"),
+  status: text("status").notNull().default("active"),
+  metadata: text("metadata"),
+  lastSyncedAt: timestamp("last_synced_at").notNull().defaultNow(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertPartnerProjectSchema = createInsertSchema(partnerProjects).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastSyncedAt: true,
+}).extend({
+  minAmount: z.coerce.number().positive().optional(),
+  maxAmount: z.coerce.number().positive().optional(),
+  expectedRoi: z.coerce.number().optional(),
+  duration: z.coerce.number().int().positive().optional(),
+});
+
+export type InsertPartnerProject = z.infer<typeof insertPartnerProjectSchema>;
+export type PartnerProject = typeof partnerProjects.$inferSelect;
+
+// Partner Investments table - User investments through partner APIs
+export const partnerInvestments = pgTable("partner_investments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  partnerId: varchar("partner_id").notNull().references(() => partnerApis.id, { onDelete: "cascade" }),
+  partnerProjectId: varchar("partner_project_id").notNull().references(() => partnerProjects.id, { onDelete: "cascade" }),
+  externalInvestmentId: text("external_investment_id"),
+  externalTransactionId: text("external_transaction_id"),
+  amount: decimal("amount", { precision: 12, scale: 2 }).notNull(),
+  commissionAmount: decimal("commission_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  roiAccrued: decimal("roi_accrued", { precision: 12, scale: 2 }).notNull().default("0"),
+  currency: text("currency").notNull().default("USD"),
+  status: partnerInvestmentStatusEnum("status").notNull().default("pending"),
+  requestedAt: timestamp("requested_at").notNull().defaultNow(),
+  fulfilledAt: timestamp("fulfilled_at"),
+  lastWebhookAt: timestamp("last_webhook_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertPartnerInvestmentSchema = createInsertSchema(partnerInvestments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  requestedAt: true,
+  fulfilledAt: true,
+  lastWebhookAt: true,
+  commissionAmount: true,
+  roiAccrued: true,
+  externalInvestmentId: true,
+  externalTransactionId: true,
+  errorMessage: true,
+}).extend({
+  amount: z.coerce.number().positive("Amount must be positive"),
+});
+
+export type InsertPartnerInvestment = z.infer<typeof insertPartnerInvestmentSchema>;
+export type PartnerInvestment = typeof partnerInvestments.$inferSelect;
+
+// ROI Updates table - Webhook updates from partners
+export const roiUpdates = pgTable("roi_updates", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  partnerInvestmentId: varchar("partner_investment_id").notNull().references(() => partnerInvestments.id, { onDelete: "cascade" }),
+  externalTransactionId: text("external_transaction_id"),
+  roiAmount: decimal("roi_amount", { precision: 12, scale: 2 }).notNull(),
+  previousTotal: decimal("previous_total", { precision: 12, scale: 2 }).notNull().default("0"),
+  newTotal: decimal("new_total", { precision: 12, scale: 2 }).notNull(),
+  status: text("status").notNull().default("processed"),
+  rawPayload: text("raw_payload"),
+  processedAt: timestamp("processed_at").notNull().defaultNow(),
+});
+
+export const insertRoiUpdateSchema = createInsertSchema(roiUpdates).omit({
+  id: true,
+  processedAt: true,
+}).extend({
+  roiAmount: z.coerce.number(),
+  previousTotal: z.coerce.number().optional(),
+  newTotal: z.coerce.number(),
+});
+
+export type InsertRoiUpdate = z.infer<typeof insertRoiUpdateSchema>;
+export type RoiUpdate = typeof roiUpdates.$inferSelect;

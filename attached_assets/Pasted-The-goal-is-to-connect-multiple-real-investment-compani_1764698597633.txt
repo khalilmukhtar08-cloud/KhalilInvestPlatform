@@ -1,0 +1,187 @@
+The goal is to connect multiple real investment companies (like Bamboo, Chaka, and CrowdProperty) through API integration, allowing users to invest through Khalil’s dashboard and track real ROI from partner APIs.
+
+🔹 Core Functionalities:
+
+1️⃣ User Authentication
+
+Register/Login system with bcrypt.
+
+Role-based access: admin / user.
+
+
+2️⃣ Partner Company Integration
+
+Admin can add/edit partner APIs with:
+
+companyName, baseURL, apiKey, sector, logo, description
+
+Store in MongoDB.
+
+Each partner’s projects will be fetched dynamically using GET /projects endpoint.
+
+
+3️⃣ Investment Dashboard (User)
+
+Display projects from all integrated companies.
+
+Each project card shows:
+
+Title
+
+ROI %
+
+Duration
+
+Company name
+
+“Invest” button
+
+
+When a user clicks “Invest”:
+
+Backend sends POST request to partner API:
+
+POST /invest { userId, amount, projectId }
+
+Receive investment confirmation + transaction ID.
+
+Save in MongoDB.
+
+
+
+4️⃣ Webhook for ROI Updates
+
+Each partner API sends ROI data periodically via webhook:
+
+POST /webhook/roi { transactionId, roiAmount, status }
+
+Update investment record in MongoDB automatically.
+
+
+5️⃣ Commission Tracking
+
+System automatically calculates company commission:
+
+commission = (amount * 0.05)
+
+Save commission data in admin dashboard analytics.
+
+
+6️⃣ Admin Dashboard
+
+Routes: /admin/integrations, /admin/investments, /admin/analytics
+
+Features:
+
+Approve or reject partner API companies.
+
+Monitor total ROI, total investors, commission earned.
+
+View investment logs per partner.
+
+
+
+7️⃣ Frontend (EJS Templates)
+
+/dashboard/investments — User view of all projects.
+
+/dashboard/portfolio — User investment history.
+
+/admin/integrations — Add/edit/remove partner APIs.
+
+/admin/analytics — Charts (Chart.js) for investment distribution.
+
+
+8️⃣ Email Notifications
+
+Send emails when:
+
+New investment confirmed.
+
+ROI credited to user wallet.
+
+
+Use Nodemailer with environment credentials.
+
+
+9️⃣ Database Models (MongoDB)
+
+User
+
+name, email, password, role
+
+PartnerAPI
+
+companyName, baseURL, apiKey, sector, description, status
+
+Investment
+
+userId, partnerId, projectId, amount, ROI, commission, status, transactionId
+
+ROIUpdates
+
+transactionId, roiAmount, date, status
+
+
+10️⃣ Security
+
+Store all API keys in .env.
+
+Use HTTPS for API calls.
+
+Validate webhooks using shared secret.
+
+
+
+---
+
+⚙️ Tech Stack
+
+Node.js (Express)
+
+MongoDB (Mongoose)
+
+EJS (Frontend)
+
+Chart.js (Analytics)
+
+Axios (API calls)
+
+Nodemailer (Emails)
+
+bcrypt (Security)
+
+dotenv
+
+express-session
+
+
+
+---
+
+💰 Branding
+
+Project: Khalil Investment Platform
+
+Slogan: Empowering Smart Investments for Everyone
+
+Admin: khalilmukhtar08@gmail.com
+
+Color Theme: Dark Blue (#0A1A3E), Gold (#E2B84C), White (#FFFFFF)
+
+
+
+---
+
+🎯 Expected Output
+
+Fully functional investment module with partner company integrations.
+
+Real-time ROI tracking.
+
+Admin dashboard with commission analytics.
+
+Secure webhook system.
+
+Email notification support.
+
