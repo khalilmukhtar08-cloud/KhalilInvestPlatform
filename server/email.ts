@@ -4,28 +4,36 @@ import { storage } from "./storage";
 
 export class EmailService {
   private transporter: Transporter | null = null;
+  private fromAddress: string = "noreply@example.com";
 
   async initialize() {
     const settings = await storage.getSettings();
     
-    if (!settings?.emailHost || !settings?.emailUser || !settings?.emailPassword) {
+    const emailHost = settings?.emailHost || process.env.SMTP_HOST;
+    const emailPort = settings?.emailPort || parseInt(process.env.SMTP_PORT || "587");
+    const emailUser = settings?.emailUser || process.env.SMTP_USER;
+    const emailPassword = settings?.emailPassword || process.env.SMTP_PASSWORD;
+    this.fromAddress = settings?.emailFrom || process.env.SMTP_FROM || emailUser || "noreply@example.com";
+    
+    if (!emailHost || !emailUser || !emailPassword) {
       console.warn("Email settings not configured. Email notifications will not be sent.");
+      console.warn("Configure via admin settings or set SMTP_HOST, SMTP_USER, SMTP_PASSWORD environment variables.");
       return;
     }
 
     this.transporter = nodemailer.createTransport({
-      host: settings.emailHost,
-      port: settings.emailPort || 587,
-      secure: settings.emailPort === 465,
+      host: emailHost,
+      port: emailPort,
+      secure: emailPort === 465,
       auth: {
-        user: settings.emailUser,
-        pass: settings.emailPassword,
+        user: emailUser,
+        pass: emailPassword,
       },
     });
 
     try {
       await this.transporter.verify();
-      console.log("Email service ready");
+      console.log("Email service ready - connected to", emailHost);
     } catch (error) {
       console.error("Email service configuration error:", error);
       this.transporter = null;
@@ -38,12 +46,11 @@ export class EmailService {
     }
 
     if (!this.transporter) {
-      throw new Error("Email service not configured");
+      console.warn("Email not sent - service not configured:", subject);
+      return null;
     }
 
-    const settings = await storage.getSettings();
-    const fromAddress = from || settings?.emailFrom || settings?.emailUser || "noreply@example.com";
-
+    const fromAddress = from || this.fromAddress;
     const recipients = Array.isArray(to) ? to : [to];
 
     try {

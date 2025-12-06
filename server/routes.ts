@@ -861,6 +861,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/settings/test-email", isAdmin, async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: "Email address required" });
+      }
+      
+      await emailService.initialize();
+      const result = await emailService.sendEmail(
+        email,
+        "Test Email - Khalil Investment Company",
+        `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #4F46E5;">Email Configuration Test</h2>
+          <p>This is a test email to verify your SMTP settings are working correctly.</p>
+          <p>If you received this email, your email service is properly configured.</p>
+          <br>
+          <p>Best regards,<br>Khalil Investment Team</p>
+        </div>
+        `
+      );
+      
+      if (result) {
+        res.json({ success: true, message: "Test email sent successfully" });
+      } else {
+        res.status(500).json({ success: false, message: "Email service not configured. Please set SMTP settings in admin panel or environment variables." });
+      }
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message || "Failed to send test email" });
+    }
+  });
+
   app.get("/api/referrals", isAuthenticated, async (req, res) => {
     try {
       const referrals = await storage.getReferralsByReferrer(req.user!.id);
