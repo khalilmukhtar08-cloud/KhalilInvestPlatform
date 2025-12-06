@@ -1954,6 +1954,142 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // =====================
+  // Stripe Payment Routes
+  // =====================
+  
+  app.get("/api/stripe/publishable-key", async (_req, res) => {
+    try {
+      const { getStripePublishableKey } = await import("./stripeClient");
+      const publishableKey = await getStripePublishableKey();
+      res.json({ publishableKey });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to get publishable key" });
+    }
+  });
+
+  app.get("/api/stripe/products", isAuthenticated, async (_req, res) => {
+    try {
+      const { stripeService } = await import("./stripeService");
+      const products = await stripeService.listProductsWithPrices();
+      
+      const productsMap = new Map();
+      for (const row of products as any[]) {
+        if (!productsMap.has(row.product_id)) {
+          productsMap.set(row.product_id, {
+            id: row.product_id,
+            name: row.product_name,
+            description: row.product_description,
+            active: row.product_active,
+            metadata: row.product_metadata,
+            prices: []
+          });
+        }
+        if (row.price_id) {
+          productsMap.get(row.product_id).prices.push({
+            id: row.price_id,
+            unit_amount: row.unit_amount,
+            currency: row.currency,
+            recurring: row.recurring,
+            active: row.price_active,
+          });
+        }
+      }
+      
+      res.json({ products: Array.from(productsMap.values()) });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch products" });
+    }
+  });
+
+  app.post("/api/stripe/checkout", isAuthenticated, async (req, res) => {
+    try {
+      const { priceId, mode = "payment" } = req.body;
+      const user = req.user!;
+      
+      const { stripeService } = await import("./stripeService");
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+      
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripeService.createCustomer(user.email, user.id, user.name);
+        await storage.updateUser(user.id, { stripeCustomerId: customer.id });
+        customerId = customer.id;
+      }
+      
+      const successUrl = `${req.protocol}://${req.get("host")}/dashboard?checkout=success`;
+      const cancelUrl = `${req.protocol}://${req.get("host")}/dashboard?checkout=cancel`;
+      
+      const session = await stripeService.createCheckoutSession(
+        customerId,
+        priceId,
+        successUrl,
+        cancelUrl,
+        mode as "payment" | "subscription"
+      );
+      
+      res.json({ url: session.url });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to create checkout session" });
+    }
+  });
+
+  app.post("/api/stripe/deposit", isAuthenticated, async (req, res) => {
+    try {
+      const { amount } = req.body;
+      const user = req.user!;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ message: "Invalid amount" });
+      }
+      
+      const { stripeService } = await import("./stripeService");
+      const { getUncachableStripeClient } = await import("./stripeClient");
+      const stripe = await getUncachableStripeClient();
+      
+      let customerId = user.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripeService.createCustomer(user.email, user.id, user.name);
+        await storage.updateUser(user.id, { stripeCustomerId: customer.id });
+        customerId = customer.id;
+      }
+      
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: Math.round(amount * 100),
+        currency: "usd",
+        customer: customerId,
+        metadata: { userId: user.id, type: "deposit" },
+      });
+      
+      res.json({ clientSecret: paymentIntent.client_secret });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to create payment intent" });
+    }
+  });
+
+  app.post("/api/stripe/customer-portal", isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user!;
+      
+      if (!user.stripeCustomerId) {
+        return res.status(400).json({ message: "No Stripe customer found" });
+      }
+      
+      const { stripeService } = await import("./stripeService");
+      const returnUrl = `${req.protocol}://${req.get("host")}/dashboard`;
+      
+      const session = await stripeService.createCustomerPortalSession(
+        user.stripeCustomerId,
+        returnUrl
+      );
+      
+      res.json({ url: session.url });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to create portal session" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;

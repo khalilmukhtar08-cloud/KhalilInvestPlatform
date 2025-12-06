@@ -34,6 +34,8 @@ export const users = pgTable("users", {
   emailVerificationExpires: timestamp("email_verification_expires"),
   balance: decimal("balance", { precision: 12, scale: 2 }).notNull().default("0.00"),
   referralCode: text("referral_code").unique(),
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 
