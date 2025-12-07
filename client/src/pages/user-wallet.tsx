@@ -82,6 +82,8 @@ export default function UserWallet() {
 
   const { data: balanceData, isLoading: balanceLoading, error: balanceError } = useQuery({
     queryKey: ["/api/wallet/balance"],
+    refetchInterval: 10000,
+    refetchIntervalInBackground: false,
   });
 
   const { data: transactionsData, isLoading: transactionsLoading, error: transactionsError } = useQuery<{ transactions: Transaction[] }>({
