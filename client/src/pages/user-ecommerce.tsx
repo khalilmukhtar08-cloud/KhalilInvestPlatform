@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, LinkIcon } from "lucide-react";
+import { Plus, LinkIcon, ShoppingCart, Store, Package } from "lucide-react";
 import {
   Dialog,
   DialogContent,
