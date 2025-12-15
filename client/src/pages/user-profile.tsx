@@ -1,12 +1,13 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Calendar, Shield, Award, TrendingUp } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { User, Mail, Calendar, Shield, Award, TrendingUp, CheckCircle, Clock, XCircle, FileCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useState, useEffect } from "react";
@@ -14,6 +15,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { KycForm } from "@/components/kyc-form";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -50,6 +52,12 @@ interface AmbassadorStats {
   affiliateCode?: string;
 }
 
+interface KycStatus {
+  kycStatus: "not_submitted" | "pending" | "approved" | "rejected";
+  kycFullName?: string;
+  kycRejectionReason?: string;
+}
+
 export default function UserProfile() {
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
@@ -64,6 +72,10 @@ export default function UserProfile() {
 
   const { data: ambassadorStats, isLoading: ambassadorLoading } = useQuery<AmbassadorStats>({
     queryKey: ["/api/affiliates/stats"],
+  });
+
+  const { data: kycStatus, isLoading: kycLoading } = useQuery<KycStatus>({
+    queryKey: ["/api/kyc/status"],
   });
 
   const form = useForm<ProfileForm>({
@@ -108,7 +120,7 @@ export default function UserProfile() {
     updateProfileMutation.mutate(data);
   };
 
-  if (userLoading || referralLoading || ambassadorLoading) {
+  if (userLoading || referralLoading || ambassadorLoading || kycLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
@@ -152,6 +164,58 @@ export default function UserProfile() {
         <h1 className="text-3xl font-bold font-serif mb-2">My Profile</h1>
         <p className="text-muted-foreground">Manage your account information and view your stats</p>
       </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileCheck className="h-5 w-5" />
+            Identity Verification (KYC)
+          </CardTitle>
+          <CardDescription>
+            Verify your identity to unlock all platform features
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {kycStatus?.kycStatus === "approved" && (
+            <Alert className="border-green-500 bg-green-50 dark:bg-green-950">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertTitle>Verified</AlertTitle>
+              <AlertDescription>
+                Your identity has been verified. You have full access to all platform features.
+              </AlertDescription>
+            </Alert>
+          )}
+          {kycStatus?.kycStatus === "pending" && (
+            <Alert className="border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
+              <Clock className="h-4 w-4 text-yellow-600" />
+              <AlertTitle>Pending Review</AlertTitle>
+              <AlertDescription>
+                Your verification documents are being reviewed. This usually takes 1-2 business days.
+              </AlertDescription>
+            </Alert>
+          )}
+          {kycStatus?.kycStatus === "rejected" && (
+            <div className="space-y-4">
+              <Alert className="border-red-500 bg-red-50 dark:bg-red-950">
+                <XCircle className="h-4 w-4 text-red-600" />
+                <AlertTitle>Verification Rejected</AlertTitle>
+                <AlertDescription>
+                  {kycStatus.kycRejectionReason || "Your verification was rejected. Please submit again with correct information."}
+                </AlertDescription>
+              </Alert>
+              <KycForm />
+            </div>
+          )}
+          {(!kycStatus?.kycStatus || kycStatus.kycStatus === "not_submitted") && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Complete your identity verification to list properties, create investments, and access premium features.
+              </p>
+              <KycForm />
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         <Card>

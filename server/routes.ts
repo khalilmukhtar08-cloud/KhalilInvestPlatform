@@ -1401,7 +1401,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTransactionSchema.omit({ userId: true, type: true, status: true }).parse(req.body);
       
-      const transaction = await storage.deposit(
+      const transaction = await storage.requestDeposit(
         req.user!.id, 
         validatedData.amount, 
         validatedData.description || undefined,
@@ -1409,7 +1409,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       const balance = await storage.getUserBalance(req.user!.id);
       
-      res.status(201).json({ transaction, balance });
+      res.status(201).json({ 
+        transaction, 
+        balance,
+        message: "Deposit request submitted. Awaiting admin approval."
+      });
     } catch (error: any) {
       if (error instanceof UserNotFoundError) {
         return res.status(404).json({ message: error.message });
@@ -1422,7 +1426,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTransactionSchema.omit({ userId: true, type: true, status: true }).parse(req.body);
       
-      const transaction = await storage.withdraw(
+      const transaction = await storage.requestWithdraw(
         req.user!.id, 
         validatedData.amount, 
         validatedData.description || undefined,
@@ -1430,7 +1434,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       const balance = await storage.getUserBalance(req.user!.id);
       
-      res.status(201).json({ transaction, balance });
+      res.status(201).json({ 
+        transaction, 
+        balance,
+        message: "Withdrawal request submitted. Awaiting admin approval."
+      });
     } catch (error: any) {
       if (error instanceof InsufficientFundsError) {
         return res.status(409).json({ message: error.message });
@@ -1486,6 +1494,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: error.message });
       }
       res.status(400).json({ message: error.message || "Failed to transfer funds" });
+    }
+  });
+
+  // KYC Routes
+  app.get("/api/kyc/status", isAuthenticated, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      res.json({ 
+        kycStatus: user?.kycStatus || "not_submitted",
+        kycFullName: user?.kycFullName,
+        kycRejectionReason: user?.kycRejectionReason 
+      });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch KYC status" });
+    }
+  });
+
+  app.post("/api/kyc/submit", isAuthenticated, async (req, res) => {
+    try {
+      const { kycFullName, kycPhone, kycAddress, kycCity, kycCountry, kycIdType, kycIdNumber } = req.body;
+      
+      if (!kycFullName || !kycPhone || !kycAddress || !kycCity || !kycCountry || !kycIdType || !kycIdNumber) {
+        return res.status(400).json({ message: "All KYC fields are required" });
+      }
+      
+      const updated = await storage.submitKyc(req.user!.id, { 
+        kycFullName, kycPhone, kycAddress, kycCity, kycCountry, kycIdType, kycIdNumber 
+      });
+      
+      const { password: _, ...userWithoutPassword } = updated;
+      res.json({ user: userWithoutPassword, message: "KYC submitted for review" });
+    } catch (error: any) {
+      res.status(400).json({ message: error.message || "Failed to submit KYC" });
+    }
+  });
+
+  // Admin KYC Routes
+  app.get("/api/admin/kyc/pending", isAdmin, async (req, res) => {
+    try {
+      const users = await storage.getUsersWithPendingKyc();
+      const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+      res.json({ users: usersWithoutPasswords });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch pending KYC" });
+    }
+  });
+
+  app.post("/api/admin/kyc/:userId/approve", isAdmin, async (req, res) => {
+    try {
+      const updated = await storage.approveKyc(req.params.userId);
+      const { password: _, ...userWithoutPassword } = updated;
+      res.json({ user: userWithoutPassword, message: "KYC approved" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to approve KYC" });
+    }
+  });
+
+  app.post("/api/admin/kyc/:userId/reject", isAdmin, async (req, res) => {
+    try {
+      const { reason } = req.body;
+      const updated = await storage.rejectKyc(req.params.userId, reason || "Application rejected");
+      const { password: _, ...userWithoutPassword } = updated;
+      res.json({ user: userWithoutPassword, message: "KYC rejected" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to reject KYC" });
+    }
+  });
+
+  // Admin Transaction Routes
+  app.get("/api/admin/transactions/pending", isAdmin, async (req, res) => {
+    try {
+      const transactions = await storage.getPendingTransactions();
+      res.json({ transactions });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch pending transactions" });
+    }
+  });
+
+  app.get("/api/admin/transactions/all", isAdmin, async (req, res) => {
+    try {
+      const transactions = await storage.getAllTransactions();
+      res.json({ transactions });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to fetch transactions" });
+    }
+  });
+
+  app.post("/api/admin/transactions/:id/approve", isAdmin, async (req, res) => {
+    try {
+      const transaction = await storage.approveTransaction(req.params.id);
+      res.json({ transaction, message: "Transaction approved" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to approve transaction" });
+    }
+  });
+
+  app.post("/api/admin/transactions/:id/reject", isAdmin, async (req, res) => {
+    try {
+      const transaction = await storage.rejectTransaction(req.params.id);
+      res.json({ transaction, message: "Transaction rejected" });
+    } catch (error: any) {
+      res.status(500).json({ message: error.message || "Failed to reject transaction" });
     }
   });
 

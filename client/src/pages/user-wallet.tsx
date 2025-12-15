@@ -150,8 +150,8 @@ export default function UserWallet() {
     },
     onSuccess: () => {
       toast({
-        title: "Deposit successful",
-        description: "Funds have been added to your wallet",
+        title: "Deposit Request Submitted",
+        description: "Your deposit is pending admin approval. You'll be notified when it's processed.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet/balance"] });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
@@ -161,7 +161,7 @@ export default function UserWallet() {
     onError: (error: any) => {
       toast({
         title: "Deposit failed",
-        description: error.message || "Failed to deposit funds",
+        description: error.message || "Failed to submit deposit request",
         variant: "destructive",
       });
     },
@@ -173,8 +173,8 @@ export default function UserWallet() {
     },
     onSuccess: () => {
       toast({
-        title: "Withdrawal successful",
-        description: "Funds have been withdrawn from your wallet",
+        title: "Withdrawal Request Submitted",
+        description: "Your withdrawal is pending admin approval. You'll be notified when it's processed.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet/balance"] });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
@@ -184,7 +184,7 @@ export default function UserWallet() {
     onError: (error: any) => {
       toast({
         title: "Withdrawal failed",
-        description: error.message || "Failed to withdraw funds",
+        description: error.message || "Failed to submit withdrawal request",
         variant: "destructive",
       });
     },

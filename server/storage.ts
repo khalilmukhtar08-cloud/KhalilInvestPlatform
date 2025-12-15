@@ -151,11 +151,24 @@ export interface IStorage {
   createUserPreferences(preferences: InsertUserPreferences): Promise<UserPreferences>;
   updateUserPreferences(userId: string, data: Partial<UserPreferences>): Promise<UserPreferences | undefined>;
 
+  // KYC Verification
+  submitKyc(userId: string, kycData: { kycFullName: string; kycPhone: string; kycAddress: string; kycCity: string; kycCountry: string; kycIdType: string; kycIdNumber: string }): Promise<User>;
+  approveKyc(userId: string): Promise<User>;
+  rejectKyc(userId: string, reason: string): Promise<User>;
+  getUsersWithPendingKyc(): Promise<User[]>;
+
   // Transactions (Wallet)
   getTransaction(id: string): Promise<Transaction | undefined>;
   getTransactionsByUser(userId: string): Promise<Transaction[]>;
+  getAllTransactions(): Promise<Transaction[]>;
+  getPendingTransactions(): Promise<Transaction[]>;
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
+  updateTransactionStatus(id: string, status: "pending" | "completed" | "failed"): Promise<Transaction>;
   getUserBalance(userId: string): Promise<string>;
+  requestDeposit(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction>;
+  requestWithdraw(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction>;
+  approveTransaction(transactionId: string): Promise<Transaction>;
+  rejectTransaction(transactionId: string): Promise<Transaction>;
   deposit(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction>;
   withdraw(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction>;
   transfer(fromUserId: string, toUserId: string, amount: number, description?: string): Promise<{ senderTransaction: Transaction; recipientTransaction: Transaction }>;
@@ -566,6 +579,36 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  // KYC Verification
+  async submitKyc(userId: string, kycData: { kycFullName: string; kycPhone: string; kycAddress: string; kycCity: string; kycCountry: string; kycIdType: string; kycIdNumber: string }): Promise<User> {
+    const [updated] = await db.update(users).set({
+      ...kycData,
+      kycStatus: "pending",
+      kycSubmittedAt: new Date(),
+    }).where(eq(users.id, userId)).returning();
+    return updated;
+  }
+
+  async approveKyc(userId: string): Promise<User> {
+    const [updated] = await db.update(users).set({
+      kycStatus: "approved",
+      kycApprovedAt: new Date(),
+    }).where(eq(users.id, userId)).returning();
+    return updated;
+  }
+
+  async rejectKyc(userId: string, reason: string): Promise<User> {
+    const [updated] = await db.update(users).set({
+      kycStatus: "rejected",
+      kycRejectionReason: reason,
+    }).where(eq(users.id, userId)).returning();
+    return updated;
+  }
+
+  async getUsersWithPendingKyc(): Promise<User[]> {
+    return db.select().from(users).where(eq(users.kycStatus, "pending")).orderBy(desc(users.kycSubmittedAt));
+  }
+
   // Transactions (Wallet)
   async getTransaction(id: string): Promise<Transaction | undefined> {
     const [transaction] = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
@@ -582,6 +625,77 @@ export class DatabaseStorage implements IStorage {
       amount: transaction.amount.toString(),
     }).returning();
     return newTransaction;
+  }
+
+  async getAllTransactions(): Promise<Transaction[]> {
+    return db.select().from(transactions).orderBy(desc(transactions.createdAt));
+  }
+
+  async getPendingTransactions(): Promise<Transaction[]> {
+    return db.select().from(transactions).where(eq(transactions.status, "pending")).orderBy(desc(transactions.createdAt));
+  }
+
+  async updateTransactionStatus(id: string, status: "pending" | "completed" | "failed"): Promise<Transaction> {
+    const [updated] = await db.update(transactions).set({ status }).where(eq(transactions.id, id)).returning();
+    return updated;
+  }
+
+  async requestDeposit(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) throw new UserNotFoundError();
+    
+    const [transaction] = await db.insert(transactions).values({
+      userId,
+      type: "deposit",
+      amount: amount.toString(),
+      status: "pending",
+      paymentMethod,
+      description: description || "Deposit request - pending approval",
+    }).returning();
+    return transaction;
+  }
+
+  async requestWithdraw(userId: string, amount: number, description?: string, paymentMethod?: string): Promise<Transaction> {
+    const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    if (!user) throw new UserNotFoundError();
+    if (parseFloat(user.balance) < amount) throw new InsufficientFundsError();
+    
+    const [transaction] = await db.insert(transactions).values({
+      userId,
+      type: "withdraw",
+      amount: amount.toString(),
+      status: "pending",
+      paymentMethod,
+      description: description || "Withdrawal request - pending approval",
+    }).returning();
+    return transaction;
+  }
+
+  async approveTransaction(transactionId: string): Promise<Transaction> {
+    return await db.transaction(async (tx) => {
+      const [transaction] = await tx.select().from(transactions).where(eq(transactions.id, transactionId)).limit(1);
+      if (!transaction) throw new Error("Transaction not found");
+      if (transaction.status !== "pending") throw new Error("Transaction is not pending");
+      
+      const amount = parseFloat(transaction.amount);
+      if (transaction.type === "deposit") {
+        await tx.update(users).set({ balance: sql`${users.balance} + ${amount.toString()}` }).where(eq(users.id, transaction.userId));
+      } else if (transaction.type === "withdraw") {
+        const result = await tx.update(users)
+          .set({ balance: sql`${users.balance} - ${amount.toString()}` })
+          .where(and(eq(users.id, transaction.userId), sql`${users.balance}::numeric >= ${amount.toString()}::numeric`))
+          .returning();
+        if (!result.length) throw new InsufficientFundsError();
+      }
+      
+      const [updated] = await tx.update(transactions).set({ status: "completed" }).where(eq(transactions.id, transactionId)).returning();
+      return updated;
+    });
+  }
+
+  async rejectTransaction(transactionId: string): Promise<Transaction> {
+    const [updated] = await db.update(transactions).set({ status: "failed" }).where(eq(transactions.id, transactionId)).returning();
+    return updated;
   }
 
   async getUserBalance(userId: string): Promise<string> {

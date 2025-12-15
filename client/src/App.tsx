@@ -30,6 +30,8 @@ import AdminSocial from "@/pages/admin-social";
 import AdminP2P from "@/pages/admin-p2p";
 import AdminSettings from "@/pages/admin-settings";
 import AdminPartners from "@/pages/admin-partners";
+import AdminKyc from "@/pages/admin-kyc";
+import AdminTransactions from "@/pages/admin-transactions";
 
 type Page = 
   | "landing" 
@@ -52,7 +54,9 @@ type Page =
   | "admin/social"
   | "admin/p2p"
   | "admin/settings"
-  | "admin/partners";
+  | "admin/partners"
+  | "admin/kyc"
+  | "admin/transactions";
 
 type UserRole = "admin" | "user" | null;
 
@@ -241,6 +245,10 @@ function AppContent() {
         return <AdminSettings />;
       case "admin/partners":
         return <AdminPartners />;
+      case "admin/kyc":
+        return <AdminKyc />;
+      case "admin/transactions":
+        return <AdminTransactions />;
       default:
         return <Landing onNavigateToLogin={() => setCurrentPage("login")} onNavigateToRegister={() => setCurrentPage("register")} onNavigateToTerms={() => setCurrentPage("terms")} />;
     }

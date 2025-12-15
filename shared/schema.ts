@@ -21,6 +21,9 @@ export const partnerSectorEnum = pgEnum("partner_sector", ["stocks", "crypto", "
 export const partnerStatusEnum = pgEnum("partner_status", ["pending", "active", "inactive", "rejected"]);
 export const partnerInvestmentStatusEnum = pgEnum("partner_investment_status", ["pending", "sent", "confirmed", "failed", "completed"]);
 
+// KYC verification status enum
+export const kycStatusEnum = pgEnum("kyc_status", ["not_submitted", "pending", "approved", "rejected"]);
+
 // Users table
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -36,6 +39,17 @@ export const users = pgTable("users", {
   referralCode: text("referral_code").unique(),
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  kycStatus: kycStatusEnum("kyc_status").notNull().default("not_submitted"),
+  kycFullName: text("kyc_full_name"),
+  kycPhone: text("kyc_phone"),
+  kycAddress: text("kyc_address"),
+  kycCity: text("kyc_city"),
+  kycCountry: text("kyc_country"),
+  kycIdType: text("kyc_id_type"),
+  kycIdNumber: text("kyc_id_number"),
+  kycSubmittedAt: timestamp("kyc_submitted_at"),
+  kycApprovedAt: timestamp("kyc_approved_at"),
+  kycRejectionReason: text("kyc_rejection_reason"),
   joinedAt: timestamp("joined_at").notNull().defaultNow(),
 });
 
@@ -46,9 +60,27 @@ export const insertUserSchema = createInsertSchema(users).omit({
   isEmailVerified: true,
   emailVerificationToken: true,
   emailVerificationExpires: true,
+  kycStatus: true,
+  kycSubmittedAt: true,
+  kycApprovedAt: true,
+  kycRejectionReason: true,
 }).extend({
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
+
+export const kycVerificationSchema = z.object({
+  kycFullName: z.string().min(2, "Full name is required"),
+  kycPhone: z.string().min(6, "Valid phone number is required"),
+  kycAddress: z.string().min(5, "Address is required"),
+  kycCity: z.string().min(2, "City is required"),
+  kycCountry: z.string().min(2, "Country is required"),
+  kycIdType: z.enum(["passport", "national_id", "drivers_license"], {
+    required_error: "ID type is required",
+  }),
+  kycIdNumber: z.string().min(4, "ID number is required"),
+});
+
+export type KycVerification = z.infer<typeof kycVerificationSchema>;
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;

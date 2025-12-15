@@ -12,6 +12,8 @@ import {
   UserPlus,
   ArrowUpDown,
   Handshake,
+  FileCheck,
+  Receipt,
 } from "lucide-react";
 import {
   Sidebar,
@@ -129,6 +131,16 @@ export function AppSidebar({
       title: "Partners",
       url: "/admin/partners",
       icon: Handshake,
+    },
+    {
+      title: "KYC Approvals",
+      url: "/admin/kyc",
+      icon: FileCheck,
+    },
+    {
+      title: "Transactions",
+      url: "/admin/transactions",
+      icon: Receipt,
     },
     {
       title: "Settings",
