@@ -25,25 +25,32 @@ async function initStripe() {
 
   try {
     console.log("Initializing Stripe schema...");
-    await runMigrations({ databaseUrl, schema: "stripe" });
+    await runMigrations({ databaseUrl });
     console.log("Stripe schema ready");
 
-    const stripeSync = await getStripeSync();
+    try {
+      const stripeSync = await getStripeSync();
+      console.log("Stripe sync initialized successfully");
 
-    console.log("Setting up managed webhook...");
-    const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`;
-    const { webhook, uuid } = await stripeSync.findOrCreateManagedWebhook(
-      `${webhookBaseUrl}/api/stripe/webhook/${crypto.randomUUID()}`,
-      { enabled_events: ["*"], description: "Managed webhook for Stripe sync" }
-    );
-    console.log(`Webhook configured: ${webhook.url}`);
+      if (process.env.REPLIT_DOMAINS) {
+        console.log("Setting up managed webhook...");
+        const webhookBaseUrl = `https://${process.env.REPLIT_DOMAINS?.split(",")[0]}`;
+        const { webhook } = await stripeSync.findOrCreateManagedWebhook(
+          `${webhookBaseUrl}/api/stripe/webhook/${crypto.randomUUID()}`,
+          { enabled_events: ["*"], description: "Managed webhook for Stripe sync" }
+        );
+        console.log(`Webhook configured: ${webhook.url}`);
 
-    console.log("Syncing Stripe data...");
-    stripeSync.syncBackfill()
-      .then(() => console.log("Stripe data synced"))
-      .catch((err: any) => console.error("Error syncing Stripe data:", err));
+        console.log("Syncing Stripe data...");
+        stripeSync.syncBackfill()
+          .then(() => console.log("Stripe data synced"))
+          .catch((err: any) => console.error("Error syncing Stripe data:", err));
+      }
+    } catch (stripeError) {
+      console.warn("Stripe integration not fully configured. Running in development mode:", stripeError instanceof Error ? stripeError.message : stripeError);
+    }
   } catch (error) {
-    console.error("Failed to initialize Stripe:", error);
+    console.error("Failed to initialize database schema:", error);
   }
 }
 
