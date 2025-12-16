@@ -1401,7 +1401,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const validatedData = insertTransactionSchema.omit({ userId: true, type: true, status: true }).parse(req.body);
       
-      const transaction = await storage.requestDeposit(
+      // Deposits are automatically completed (no approval needed)
+      const transaction = await storage.deposit(
         req.user!.id, 
         validatedData.amount, 
         validatedData.description || undefined,
@@ -1412,7 +1413,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(201).json({ 
         transaction, 
         balance,
-        message: "Deposit request submitted. Awaiting admin approval."
+        message: "Deposit completed successfully!"
       });
     } catch (error: any) {
       if (error instanceof UserNotFoundError) {

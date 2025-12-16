@@ -150,8 +150,8 @@ export default function UserWallet() {
     },
     onSuccess: () => {
       toast({
-        title: "Deposit Request Submitted",
-        description: "Your deposit is pending admin approval. You'll be notified when it's processed.",
+        title: "Deposit Successful",
+        description: "Your deposit has been completed and your balance has been updated.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet/balance"] });
       queryClient.invalidateQueries({ queryKey: ["/api/wallet/transactions"] });
@@ -161,7 +161,7 @@ export default function UserWallet() {
     onError: (error: any) => {
       toast({
         title: "Deposit failed",
-        description: error.message || "Failed to submit deposit request",
+        description: error.message || "Failed to process deposit",
         variant: "destructive",
       });
     },

@@ -99,7 +99,7 @@ export default function AdminTransactions() {
           <Receipt className="h-8 w-8" />
           Transaction Approvals
         </h1>
-        <p className="text-muted-foreground">Review and approve deposit and withdrawal requests</p>
+        <p className="text-muted-foreground">Review and approve withdrawal requests</p>
       </div>
 
       <Card>
