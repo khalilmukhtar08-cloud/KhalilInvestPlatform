@@ -16,6 +16,11 @@ import type { User } from "@shared/schema";
 
 const app = express();
 
+// Trust proxy for production (needed for secure cookies behind reverse proxy)
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
 async function initStripe() {
   const databaseUrl = process.env.DATABASE_URL;
   if (!databaseUrl) {
@@ -125,8 +130,9 @@ app.use(
       maxAge: 30 * 24 * 60 * 60 * 1000,
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     },
+    proxy: process.env.NODE_ENV === "production",
   })
 );
 
