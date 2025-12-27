@@ -2233,57 +2233,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // AI text generation endpoints
-  app.post("/api/ai/generate-caption", isAuthenticated, async (req, res) => {
-    try {
-      const { context, platform } = req.body;
-      const { generatePostCaption } = await import("./openai");
-      
-      const topic = context || "investment opportunities, wealth building, and financial growth";
-      const caption = await generatePostCaption(topic);
-      
-      res.json({ caption });
-    } catch (error: any) {
-      console.error("AI generation error:", error);
-      res.status(500).json({ message: error.message || "Failed to generate AI content" });
-    }
-  });
-
-  app.post("/api/ai/generate-post", isAuthenticated, async (req, res) => {
-    try {
-      const { topic, platform, tone } = req.body;
-      const { generateSocialMediaPost } = await import("./openai");
-      
-      const result = await generateSocialMediaPost(
-        topic || "investment and wealth building",
-        platform || "general",
-        tone || "professional"
-      );
-      
-      res.json(result);
-    } catch (error: any) {
-      console.error("AI generation error:", error);
-      res.status(500).json({ message: error.message || "Failed to generate AI content" });
-    }
-  });
-
-  app.post("/api/ai/generate-multiple", isAuthenticated, async (req, res) => {
-    try {
-      const { context, count } = req.body;
-      const { generateMultipleCaptions } = await import("./openai");
-      
-      const captions = await generateMultipleCaptions(
-        context || "investment opportunities",
-        count || 3
-      );
-      
-      res.json({ captions });
-    } catch (error: any) {
-      console.error("AI generation error:", error);
-      res.status(500).json({ message: error.message || "Failed to generate AI content" });
-    }
-  });
-
   const httpServer = createServer(app);
 
   return httpServer;
