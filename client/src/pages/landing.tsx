@@ -31,7 +31,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
     {
       icon: Share2,
       title: "Social Media",
-      description: "Multi-platform posting with AI-powered captions. Schedule posts to all your social accounts.",
+      description: "Multi-platform posting. Schedule and manage posts to all your social accounts.",
     },
   ];
 

@@ -6,15 +6,12 @@ The Khalil Investment Platform is a comprehensive multi-sector investment ecosys
 
 ## Recent Changes
 
-**November 19, 2025 - Module Reorganization**:
-- Merged P2P Trading functionality into Wallet page using a tabbed interface
-  - Wallet tab: Deposit, Withdraw, Transfer operations
-  - P2P Trading tab: Buy Orders, Sell Orders, My Orders
-- Merged Ambassador Program into Referrals page using tabs
-  - Referral Program tab: Referral code management, rewards tracking
-  - Ambassador Program tab: Application, tier status, sales tracking
-- Simplified navigation by removing standalone P2P and Ambassador menu items
-- Admin P2P Management remains as separate admin panel feature
+**December 27, 2025 - Immersive Aura Transformation**:
+- Integrated 3D "Aura" background using Three.js and React Three Fiber.
+- Added 3D perspective animations to Auth pages using Framer Motion.
+- Implemented glassmorphism design system across the platform.
+- Removed all AI integrations and mentions from the application.
+- Renamed platform to "Khalil Aura" in landing page.
 
 ## User Preferences
 

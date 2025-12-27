@@ -130,15 +130,6 @@ export default function AdminSettings() {
             </div>
             <Separator />
             <div className="space-y-2">
-              <Label htmlFor="openai-key">OpenAI API Key (for AI captions)</Label>
-              <Input
-                id="openai-key"
-                type="password"
-                placeholder="Enter OpenAI API key"
-                data-testid="input-openai-key"
-              />
-            </div>
-            <div className="space-y-2">
               <Label htmlFor="google-maps-key">Google Maps API Key</Label>
               <Input
                 id="google-maps-key"

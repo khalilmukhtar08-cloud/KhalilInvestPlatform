@@ -205,7 +205,6 @@ export const settings = pgTable("settings", {
   alpacaApiKey: text("alpaca_api_key"),
   finnhubApiKey: text("finnhub_api_key"),
   polygonApiKey: text("polygon_api_key"),
-  openaiApiKey: text("openai_api_key"),
   googleMapsApiKey: text("google_maps_api_key"),
   emailHost: text("email_host"),
   emailPort: integer("email_port"),
