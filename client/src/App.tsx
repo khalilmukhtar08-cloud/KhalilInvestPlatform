@@ -60,6 +60,8 @@ type Page =
 
 type UserRole = "admin" | "user" | null;
 
+import { AuraBackground } from "./components/aura-background";
+
 function AppContent() {
   const { toast } = useToast();
   const [currentPage, setCurrentPage] = useState<Page>("landing");
@@ -261,34 +263,37 @@ function AppContent() {
   };
 
   return (
-    <>
-      {isDashboardPage ? (
-        <SidebarProvider style={sidebarStyle as React.CSSProperties}>
-          <div className="flex h-screen w-full">
-            <AppSidebar
-              userRole={currentUser?.role || "user"}
-              userName={currentUser?.name || ""}
-              userEmail={currentUser?.email || ""}
-              currentPath={`/${currentPage}`}
-              onNavigate={handleNavigate}
-              onLogout={handleLogout}
-            />
-            <div className="flex flex-col flex-1">
-              <header className="flex items-center justify-between p-4 border-b border-border">
-                <SidebarTrigger data-testid="button-sidebar-toggle" />
-                <ThemeToggle />
-              </header>
-              <main className="flex-1 overflow-auto p-8">
-                {renderPage()}
-              </main>
+    <div className="relative min-h-screen">
+      <AuraBackground />
+      <div className="relative z-10">
+        {isDashboardPage ? (
+          <SidebarProvider style={sidebarStyle as React.CSSProperties}>
+            <div className="flex h-screen w-full">
+              <AppSidebar
+                userRole={currentUser?.role || "user"}
+                userName={currentUser?.name || ""}
+                userEmail={currentUser?.email || ""}
+                currentPath={`/${currentPage}`}
+                onNavigate={handleNavigate}
+                onLogout={handleLogout}
+              />
+              <div className="flex flex-col flex-1">
+                <header className="flex items-center justify-between p-4 border-b border-border">
+                  <SidebarTrigger data-testid="button-sidebar-toggle" />
+                  <ThemeToggle />
+                </header>
+                <main className="flex-1 overflow-auto p-8">
+                  {renderPage()}
+                </main>
+              </div>
             </div>
-          </div>
-        </SidebarProvider>
-      ) : (
-        renderPage()
-      )}
+          </SidebarProvider>
+        ) : (
+          renderPage()
+        )}
+      </div>
       <Toaster />
-    </>
+    </div>
   );
 }
 

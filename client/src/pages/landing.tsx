@@ -1,6 +1,7 @@
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, Building2, ShoppingBag, Share2, Shield, Zap, Users } from "lucide-react";
+import { TrendingUp, Building2, ShoppingBag, Share2 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import logoImage from "@assets/khalil_investment_logo.jpg";
 
@@ -34,43 +35,28 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
     },
   ];
 
-  const benefits = [
-    {
-      icon: Shield,
-      title: "Secure & Trusted",
-      description: "Bank-level security with encrypted data and secure authentication.",
-    },
-    {
-      icon: Zap,
-      title: "Lightning Fast",
-      description: "Real-time updates and instant notifications for all your investments.",
-    },
-    {
-      icon: Users,
-      title: "Expert Support",
-      description: "24/7 admin support and comprehensive investment guidance.",
-    },
-  ];
-
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
+    <div className="min-h-screen relative overflow-hidden">
+      <header className="border-b border-border/50 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <img src={logoImage} alt="Khalil Investment" className="h-8" />
+              <img src={logoImage} alt="Khalil Investment" className="h-8 rounded-full" />
+              <span className="font-serif font-bold tracking-wider hidden sm:block">AURA</span>
             </div>
             <div className="flex items-center gap-4">
               <ThemeToggle />
               <Button 
                 variant="ghost" 
                 onClick={onNavigateToLogin}
+                className="hover:text-primary transition-colors"
                 data-testid="button-login"
               >
                 Login
               </Button>
               <Button 
                 onClick={onNavigateToRegister}
+                className="shadow-lg shadow-primary/20"
                 data-testid="button-register"
               >
                 Get Started
@@ -80,107 +66,85 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
         </div>
       </header>
 
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl sm:text-6xl font-bold font-serif mb-6">
-            <span className="text-accent">KHALIL INVESTMENT COMPANY</span>
-          </h1>
-          <p className="text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Manage investments, real estate, e-commerce, and social media all in one powerful platform. 
-            Built for modern investors who demand excellence.
-          </p>
-          <div className="flex gap-4 justify-center">
-            <Button 
-              size="lg" 
-              onClick={onNavigateToRegister}
-              data-testid="button-get-started"
-            >
-              Start Investing Today
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline"
-              onClick={() => console.log('Learn more clicked')}
-              data-testid="button-learn-more"
-            >
-              Learn More
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
-          <h2 className="text-3xl font-bold font-serif text-center mb-12">
-            All Your Investments, One Platform
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature) => (
-              <Card key={feature.title} className="hover-elevate">
-                <CardContent className="p-6 text-center space-y-4">
-                  <div className="h-14 w-14 mx-auto rounded-full bg-accent flex items-center justify-center">
-                    <feature.icon className="h-7 w-7 text-accent-foreground" />
-                  </div>
-                  <h3 className="font-semibold text-lg">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold font-serif text-center mb-12">
-            Why Choose Khalil Investment?
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {benefits.map((benefit) => (
-              <div key={benefit.title} className="text-center space-y-3">
-                <div className="h-16 w-16 mx-auto rounded-full bg-primary flex items-center justify-center">
-                  <benefit.icon className="h-8 w-8 text-primary-foreground" />
-                </div>
-                <h3 className="font-semibold text-xl">{benefit.title}</h3>
-                <p className="text-muted-foreground">{benefit.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="py-16 px-4 sm:px-6 lg:px-8 bg-primary text-primary-foreground">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
-          <h2 className="text-4xl font-bold font-serif">
-            Ready to Transform Your Investment Strategy?
-          </h2>
-          <p className="text-lg opacity-90">
-            Join thousands of investors who trust Khalil Investment Platform
-          </p>
-          <Button 
-            size="lg" 
-            variant="outline"
-            className="bg-primary-foreground text-primary hover:bg-primary-foreground/90"
-            onClick={onNavigateToRegister}
-            data-testid="button-cta-register"
+      <main className="relative z-10">
+        <section className="py-32 px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            initial={ { opacity: 0, y: 30 } }
+            animate={ { opacity: 1, y: 0 } }
+            transition={ { duration: 1 } }
+            className="max-w-7xl mx-auto text-center"
           >
-            Create Free Account
-          </Button>
-        </div>
-      </section>
+            <h1 className="text-6xl sm:text-8xl font-black font-serif mb-8 tracking-tighter">
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary animate-gradient-x">
+                KHALIL AURA
+              </span>
+            </h1>
+            <p className="text-2xl text-foreground/70 max-w-3xl mx-auto mb-12 leading-relaxed">
+              Experience the future of wealth management in a 3D immersive environment.
+              Invest in Aura, live in Excellence.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
+              <Button 
+                size="lg" 
+                onClick={onNavigateToRegister}
+                className="h-14 px-10 text-lg rounded-full shadow-2xl shadow-primary/40 hover:scale-105 transition-transform"
+                data-testid="button-get-started"
+              >
+                Join the Future
+              </Button>
+              <Button 
+                size="lg" 
+                variant="outline"
+                className="h-14 px-10 text-lg rounded-full backdrop-blur-md border-white/20 hover:bg-white/10 transition-all"
+                onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
+                data-testid="button-learn-more"
+              >
+                Discover More
+              </Button>
+            </div>
+          </motion.div>
+        </section>
 
-      <footer className="border-t border-border py-8 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto text-center text-sm text-muted-foreground space-y-2">
-          <p>&copy; 2024 Khalil Investment Platform. All rights reserved.</p>
-          <p>
-            <button
-              onClick={onNavigateToTerms}
-              className="underline hover-elevate"
-              data-testid="link-terms"
-            >
-              Terms and Conditions
-            </button>
-          </p>
+        <section className="py-24 px-4 sm:px-6 lg:px-8 bg-black/5 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto">
+            <h2 className="text-4xl font-bold font-serif text-center mb-16 tracking-tight">
+              Multidimensional Ecosystem
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {features.map((feature, idx) => (
+                <motion.div
+                  key={feature.title}
+                  initial={ { opacity: 0, scale: 0.9 } }
+                  whileInView={ { opacity: 1, scale: 1 } }
+                  transition={ { delay: idx * 0.1 } }
+                  viewport={ { once: true } }
+                >
+                  <Card className="bg-white/5 backdrop-blur-lg border-white/10 hover:border-primary/50 transition-all duration-500 hover:-translate-y-2 group">
+                    <CardContent className="p-8 text-center space-y-6">
+                      <div className="h-20 w-20 mx-auto rounded-3xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-2xl group-hover:rotate-12 transition-transform duration-500">
+                        <feature.icon className="h-10 w-10 text-white" />
+                      </div>
+                      <h3 className="font-bold text-xl tracking-tight">{feature.title}</h3>
+                      <p className="text-foreground/60 leading-relaxed">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer className="border-t border-border/20 py-12 px-4 sm:px-6 lg:px-8 relative z-10 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto text-center space-y-6">
+          <p className="text-foreground/40 font-medium">&copy; 2025 Khalil Investment Company. All rights reserved.</p>
+          <button
+            onClick={onNavigateToTerms}
+            className="text-primary hover:text-accent underline underline-offset-4 decoration-2 transition-all"
+            data-testid="link-terms"
+          >
+            Terms of Existence
+          </button>
         </div>
       </footer>
     </div>
