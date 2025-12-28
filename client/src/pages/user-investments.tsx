@@ -21,15 +21,15 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const investmentSchema = z.object({
-  projectName: z.string().min(3, "Project name must be at least 3 characters"),
+  projectName: z.string().min(3, "Project name is required"),
   amount: z.coerce.number().min(100, "Minimum investment is $100"),
-  roi: z.coerce.number().optional(),
-  startDate: z.string().min(1, "Start date is required"),
-  endDate: z.string().min(1, "End date is required"),
+  riskTolerance: z.enum(["low", "medium", "high"]),
+  investmentDuration: z.enum(["short", "medium", "long"]),
 });
 
 type InvestmentFormData = z.infer<typeof investmentSchema>;
@@ -115,9 +115,8 @@ export default function UserInvestments() {
     defaultValues: {
       projectName: "",
       amount: 0,
-      roi: 0,
-      startDate: "",
-      endDate: "",
+      riskTolerance: "medium",
+      investmentDuration: "medium",
     },
   });
 
@@ -354,59 +353,52 @@ export default function UserInvestments() {
                           </FormItem>
                         )}
                       />
-                      <FormField
-                        control={form.control}
-                        name="roi"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Expected ROI (%)</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                step="0.1"
-                                placeholder="5.0"
-                                data-testid="input-roi"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="startDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Start Date</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="date"
-                                data-testid="input-start-date"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name="endDate"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>End Date</FormLabel>
-                            <FormControl>
-                              <Input
-                                type="date"
-                                data-testid="input-end-date"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+                      <div className="grid grid-cols-2 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="riskTolerance"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Risk Tolerance</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-risk">
+                                    <SelectValue placeholder="Select risk" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="low">Low</SelectItem>
+                                  <SelectItem value="medium">Medium</SelectItem>
+                                  <SelectItem value="high">High</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={form.control}
+                          name="investmentDuration"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Duration</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger data-testid="select-duration">
+                                    <SelectValue placeholder="Select duration" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="short">Short Term (0-2 years)</SelectItem>
+                                  <SelectItem value="medium">Medium Term (2-5 years)</SelectItem>
+                                  <SelectItem value="long">Long Term (5+ years)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
                     </div>
                     <DialogFooter>
                       <Button

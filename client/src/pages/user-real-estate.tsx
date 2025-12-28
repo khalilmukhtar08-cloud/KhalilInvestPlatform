@@ -36,8 +36,10 @@ const propertySchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters"),
   price: z.coerce.number().min(1, "Price must be greater than 0"),
   type: z.enum(["residential", "commercial", "land"]),
+  intent: z.enum(["sell", "rent"]),
   location: z.string().min(3, "Location is required"),
   description: z.string().optional(),
+  contactPhone: z.string().min(5, "Contact phone is required"),
 });
 
 type PropertyFormData = z.infer<typeof propertySchema>;
@@ -50,6 +52,7 @@ interface Property {
   image: string | null;
   status: "pending" | "approved" | "rejected";
   type: "residential" | "commercial" | "land";
+  intent: "sell" | "rent";
   promoted: boolean;
 }
 
@@ -67,8 +70,10 @@ export default function UserRealEstate() {
       title: "",
       price: 0,
       type: "residential",
+      intent: "sell",
       location: "",
       description: "",
+      contactPhone: "",
     },
   });
 
@@ -168,6 +173,29 @@ export default function UserRealEstate() {
                     />
                     <FormField
                       control={form.control}
+                      name="intent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Intent</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger data-testid="select-intent">
+                                <SelectValue placeholder="Select intent" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="sell">Sell</SelectItem>
+                              <SelectItem value="rent">Rent</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
                       name="type"
                       render={({ field }) => (
                         <FormItem>
@@ -184,6 +212,23 @@ export default function UserRealEstate() {
                               <SelectItem value="land">Land</SelectItem>
                             </SelectContent>
                           </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="contactPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Phone</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="+1 234 567 890"
+                              data-testid="input-phone"
+                              {...field}
+                            />
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}

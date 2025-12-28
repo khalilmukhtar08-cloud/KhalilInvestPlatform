@@ -276,6 +276,8 @@ export class DatabaseStorage implements IStorage {
       ...investment,
       amount: investment.amount.toString(),
       roi: investment.roi ? investment.roi.toString() : "0",
+      riskTolerance: investment.riskTolerance || "medium",
+      investmentDuration: investment.investmentDuration || "medium",
     }).returning();
     return newInvestment;
   }
@@ -311,6 +313,8 @@ export class DatabaseStorage implements IStorage {
     const [newProperty] = await db.insert(properties).values({
       ...property,
       price: property.price.toString(),
+      intent: property.intent || "sell",
+      contactPhone: property.contactPhone || null,
     }).returning();
     return newProperty;
   }

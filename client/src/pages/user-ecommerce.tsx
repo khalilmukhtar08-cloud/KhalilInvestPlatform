@@ -40,6 +40,7 @@ const productSchema = z.object({
   category: z.string().min(1, "Category is required"),
   stock: z.coerce.number().min(0, "Stock cannot be negative"),
   description: z.string().optional(),
+  condition: z.enum(["new", "used_like_new", "used_good", "used_fair"]),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -52,6 +53,7 @@ interface Product {
   image: string | null;
   status: "active" | "pending" | "flagged";
   stock: string;
+  condition: string;
 }
 
 export default function UserEcommerce() {
@@ -70,6 +72,7 @@ export default function UserEcommerce() {
       category: "",
       stock: 0,
       description: "",
+      condition: "new",
     },
   });
 
@@ -193,24 +196,49 @@ export default function UserEcommerce() {
                         )}
                       />
                     </div>
-                    <FormField
-                      control={form.control}
-                      name="stock"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Stock Quantity</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="100"
-                              data-testid="input-stock"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                        control={form.control}
+                        name="stock"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Stock Quantity</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="100"
+                                data-testid="input-stock"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name="condition"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Condition</FormLabel>
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-condition">
+                                  <SelectValue placeholder="Select condition" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="new">New</SelectItem>
+                                <SelectItem value="used_like_new">Used - Like New</SelectItem>
+                                <SelectItem value="used_good">Used - Good</SelectItem>
+                                <SelectItem value="used_fair">Used - Fair</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
                     <FormField
                       control={form.control}
                       name="description"
