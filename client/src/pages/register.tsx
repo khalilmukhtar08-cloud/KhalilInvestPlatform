@@ -33,7 +33,7 @@ export default function Register({ onRegister, onNavigateToLogin, onNavigateToHo
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button onClick={onNavigateToHome} className="flex items-center gap-3">
-              <img src={logoImage} alt="Aura" className="h-8 rounded-full" />
+              <img src={logoImage} alt="Khalil Investment Company" className="h-8 rounded-full" />
             </button>
             <ThemeToggle />
           </div>
@@ -61,7 +61,7 @@ export default function Register({ onRegister, onNavigateToLogin, onNavigateToHo
             <div className="absolute inset-0 bg-gradient-to-tr from-accent/10 via-transparent to-primary/10 pointer-events-none" />
             <CardHeader className="text-center relative z-10">
               <CardTitle className="text-3xl font-bold font-serif bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
-                Join Aura
+                Join Khalil Investment Company
               </CardTitle>
               <CardDescription className="text-foreground/60">Start your immersive investment journey</CardDescription>
             </CardHeader>

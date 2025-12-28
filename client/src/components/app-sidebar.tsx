@@ -155,7 +155,7 @@ export function AppSidebar({
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-2">
-          <img src={logoImage} alt="Aura" className="h-8" />
+          <img src={logoImage} alt="Khalil Investment Company" className="h-8" />
         </div>
       </SidebarHeader>
       <SidebarContent>

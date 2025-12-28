@@ -31,7 +31,7 @@ export default function Login({ onLogin, onNavigateToRegister, onNavigateToHome,
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button onClick={onNavigateToHome} className="flex items-center gap-3">
-              <img src={logoImage} alt="Aura" className="h-8 rounded-full" />
+              <img src={logoImage} alt="Khalil Investment Company" className="h-8 rounded-full" />
             </button>
             <ThemeToggle />
           </div>
