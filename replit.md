@@ -1,8 +1,8 @@
-# Khalil Investment Platform
+# Khalil Aura
 
 ## Overview
 
-The Khalil Investment Platform is a comprehensive multi-sector investment ecosystem that enables users to manage investments across stocks, cryptocurrency, real estate, e-commerce, and social media in a unified dashboard. The platform features role-based access control with separate admin and user experiences, real-time market data integration, and commission-based revenue generation through referrals and affiliates.
+Khalil Aura is a comprehensive multi-sector investment ecosystem that enables users to manage investments across stocks, cryptocurrency, real estate, e-commerce, and social media in a unified dashboard. The platform features role-based access control with separate admin and user experiences, real-time market data integration, and commission-based revenue generation through referrals and affiliates.
 
 ## Recent Changes
 

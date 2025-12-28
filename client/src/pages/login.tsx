@@ -29,7 +29,7 @@ export default function Login({ onLogin, onNavigateToRegister, onNavigateToHome,
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button onClick={onNavigateToHome} className="flex items-center gap-3">
-              <img src={logoImage} alt="Khalil Investment" className="h-8 rounded-full" />
+              <img src={logoImage} alt="Khalil Aura" className="h-8 rounded-full" />
             </button>
             <ThemeToggle />
           </div>
@@ -38,12 +38,21 @@ export default function Login({ onLogin, onNavigateToRegister, onNavigateToHome,
 
       <div className="flex-1 flex items-center justify-center px-4 py-12 relative z-10">
         <motion.div
-          initial={ { opacity: 0, y: 20, rotateY: -10 } }
-          animate={ { opacity: 1, y: 0, rotateY: 0 } }
-          transition={ { duration: 0.8, ease: "easeOut" } }
-          className="w-full max-w-md perspective-1000"
+          initial={ { opacity: 0, y: 20, rotateY: -15, scale: 0.95 } }
+          animate={ { opacity: 1, y: 0, rotateY: 0, scale: 1 } }
+          transition={ { 
+            duration: 1.2, 
+            ease: [0.22, 1, 0.36, 1],
+            rotateY: { duration: 1.5, ease: "easeOut" }
+          } }
+          whileHover={ { 
+            scale: 1.02,
+            rotateY: 5,
+            transition: { duration: 0.4 }
+          } }
+          className="w-full max-w-md perspective-2000"
         >
-          <Card className="bg-background/40 backdrop-blur-xl border-white/10 shadow-2xl overflow-hidden hover-elevate">
+          <Card className="bg-background/40 backdrop-blur-xl border-white/10 shadow-2xl overflow-hidden hover-elevate transition-shadow duration-500 hover:shadow-primary/20">
             <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 pointer-events-none" />
             <CardHeader className="text-center relative z-10">
               <CardTitle className="text-3xl font-bold font-serif bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/70">
