@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AuraBackground } from "@/components/aura-background";
 import logoImage from "@assets/khalil_investment_logo.jpg";
 
 interface RegisterProps {
@@ -27,11 +28,12 @@ export default function Register({ onRegister, onNavigateToLogin, onNavigateToHo
 
   return (
     <div className="min-h-screen flex flex-col relative overflow-hidden">
+      <AuraBackground />
       <header className="border-b border-border/50 backdrop-blur-md relative z-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button onClick={onNavigateToHome} className="flex items-center gap-3">
-              <img src={logoImage} alt="Khalil Aura" className="h-8 rounded-full" />
+              <img src={logoImage} alt="Aura" className="h-8 rounded-full" />
             </button>
             <ThemeToggle />
           </div>

@@ -14,7 +14,7 @@ export default function TermsAndConditions({ onNavigateToHome }: TermsAndConditi
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <button onClick={onNavigateToHome} className="flex items-center gap-3">
-              <img src={logoImage} alt="Khalil Aura" className="h-8 rounded-full" />
+              <img src={logoImage} alt="Aura" className="h-8 rounded-full" />
             </button>
             <ThemeToggle />
           </div>
@@ -36,7 +36,7 @@ export default function TermsAndConditions({ onNavigateToHome }: TermsAndConditi
               <section>
                 <h2 className="text-xl font-semibold mb-3">1. Agreement to Terms</h2>
                 <p className="text-muted-foreground">
-                  By accessing and using Khalil Aura, you agree to be bound by these Terms and Conditions. 
+                  By accessing and using Aura, you agree to be bound by these Terms and Conditions. 
                   If you disagree with any part of these terms, you may not access the platform.
                 </p>
               </section>
@@ -57,7 +57,7 @@ export default function TermsAndConditions({ onNavigateToHome }: TermsAndConditi
               <section>
                 <h2 className="text-xl font-semibold mb-3">3. Platform Services</h2>
                 <p className="text-muted-foreground mb-2">
-                  Khalil Aura provides the following services:
+                  Aura provides the following services:
                 </p>
                 <ul className="list-disc list-inside text-muted-foreground space-y-1 ml-4">
                   <li>Investment portfolio management and tracking</li>
@@ -129,15 +129,14 @@ export default function TermsAndConditions({ onNavigateToHome }: TermsAndConditi
               <section>
                 <h2 className="text-xl font-semibold mb-3">10. Intellectual Property</h2>
                 <p className="text-muted-foreground">
-                  All content, trademarks, and intellectual property on this platform remain the property of Khalil 
-                  Aura or their respective owners.
+                  All content, trademarks, and intellectual property on this platform remain the property of Aura or their respective owners.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-xl font-semibold mb-3">11. Limitation of Liability</h2>
                 <p className="text-muted-foreground">
-                  Khalil Aura is not liable for any losses resulting from investment decisions, technical 
+                  Aura is not liable for any losses resulting from investment decisions, technical 
                   failures, market volatility, or force majeure events. Users invest at their own risk.
                 </p>
               </section>
@@ -154,7 +153,7 @@ export default function TermsAndConditions({ onNavigateToHome }: TermsAndConditi
                 <h2 className="text-xl font-semibold mb-3">13. Contact Information</h2>
                 <p className="text-muted-foreground">
                   For questions about these Terms and Conditions, please contact our support team through the platform 
-                  or via email at support@khalilinvestment.com.
+                  or via email at support@aura.com.
                 </p>
               </section>
 
@@ -170,7 +169,7 @@ export default function TermsAndConditions({ onNavigateToHome }: TermsAndConditi
 
       <footer className="border-t border-border py-8 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center text-sm text-muted-foreground">
-          <p>&copy; 2024 Khalil Aura. All rights reserved.</p>
+          <p>&copy; 2024 Aura. All rights reserved.</p>
         </div>
       </footer>
     </div>

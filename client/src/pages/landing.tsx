@@ -41,7 +41,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-3">
-              <img src={logoImage} alt="Khalil Investment" className="h-8 rounded-full" />
+              <img src={logoImage} alt="Aura Investment" className="h-8 rounded-full" />
               <span className="font-serif font-bold tracking-wider hidden sm:block">AURA</span>
             </div>
             <div className="flex items-center gap-4">
@@ -76,7 +76,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
           >
             <h1 className="text-6xl sm:text-8xl font-black font-serif mb-8 tracking-tighter">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-primary animate-gradient-x">
-                KHALIL AURA
+                AURA
               </span>
             </h1>
             <p className="text-2xl text-foreground/70 max-w-3xl mx-auto mb-12 leading-relaxed">
@@ -137,7 +137,7 @@ export default function Landing({ onNavigateToLogin, onNavigateToRegister, onNav
 
       <footer className="border-t border-border/20 py-12 px-4 sm:px-6 lg:px-8 relative z-10 backdrop-blur-md">
         <div className="max-w-7xl mx-auto text-center space-y-6">
-          <p className="text-foreground/40 font-medium">&copy; 2025 Khalil Investment Company. All rights reserved.</p>
+          <p className="text-foreground/40 font-medium">&copy; 2025 Aura Investment Company. All rights reserved.</p>
           <button
             onClick={onNavigateToTerms}
             className="text-primary hover:text-accent underline underline-offset-4 decoration-2 transition-all"

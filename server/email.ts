@@ -128,12 +128,12 @@ export class EmailService {
   }
 
   async sendWelcomeEmail(toEmail: string, userName: string) {
-    const subject = "Welcome to Khalil Investment Company!";
+    const subject = "Welcome to Aura Investment Company!";
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #4F46E5;">Welcome Aboard!</h2>
         <p>Hi ${userName},</p>
-        <p>Thank you for joining Khalil Investment Company. We're excited to have you here!</p>
+        <p>Thank you for joining Aura Investment Company. We're excited to have you here!</p>
         <p>Explore our features:</p>
         <ul>
           <li>Investment Management</li>
@@ -143,7 +143,7 @@ export class EmailService {
         </ul>
         <p>Get started by verifying your email and exploring our dashboard.</p>
         <br>
-        <p>Best regards,<br>Khalil Investment Team</p>
+        <p>Best regards,<br>Aura Investment Team</p>
       </div>
     `;
 
@@ -159,7 +159,7 @@ export class EmailService {
     commission: number,
     currency: string = "USD"
   ) {
-    const subject = "Partner Investment Confirmation - Khalil Investment Company";
+    const subject = "Partner Investment Confirmation - Aura Investment Company";
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #4F46E5;">Partner Investment Submitted</h2>
@@ -176,7 +176,7 @@ export class EmailService {
         <p>Your investment is now being processed. You can track its status in your dashboard.</p>
         <p style="color: #666;">Note: Once confirmed by the partner, your investment will start earning returns based on the project's ROI.</p>
         <br>
-        <p>Best regards,<br>Khalil Investment Team</p>
+        <p>Best regards,<br>Aura Investment Team</p>
       </div>
     `;
 
@@ -213,7 +213,7 @@ export class EmailService {
 
     const config = statusConfig[status] || { color: "#6B7280", message: "Your investment status has been updated." };
 
-    const subject = `Partner Investment ${status.charAt(0).toUpperCase() + status.slice(1)} - Khalil Investment Company`;
+    const subject = `Partner Investment ${status.charAt(0).toUpperCase() + status.slice(1)} - Aura Investment Company`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: ${config.color};">Investment Status Update: ${status.toUpperCase()}</h2>
@@ -227,7 +227,7 @@ export class EmailService {
         </div>
         <p>You can view the full details in your investment dashboard.</p>
         <br>
-        <p>Best regards,<br>Khalil Investment Team</p>
+        <p>Best regards,<br>Aura Investment Team</p>
       </div>
     `;
 
@@ -242,7 +242,7 @@ export class EmailService {
     totalRoi: number,
     currency: string = "USD"
   ) {
-    const subject = "ROI Update - Khalil Investment Company";
+    const subject = "ROI Update - Aura Investment Company";
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #10B981;">You've Earned Returns!</h2>
@@ -254,7 +254,7 @@ export class EmailService {
         </div>
         <p>Keep investing to grow your returns!</p>
         <br>
-        <p>Best regards,<br>Khalil Investment Team</p>
+        <p>Best regards,<br>Aura Investment Team</p>
       </div>
     `;
 
@@ -272,12 +272,12 @@ export class EmailService {
       timeZoneName: 'short'
     });
 
-    const subject = "New Login Detected - Khalil Investment Company";
+    const subject = "New Login Detected - Aura Investment Company";
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #4F46E5;">Security Alert: New Login</h2>
         <p>Hi ${userName},</p>
-        <p>We detected a new login to your Khalil Investment account:</p>
+        <p>We detected a new login to your Aura Investment account:</p>
         <div style="background-color: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0;">
           <p style="margin: 5px 0;"><strong>Time:</strong> ${formattedTime}</p>
           ${ipAddress ? `<p style="margin: 5px 0;"><strong>IP Address:</strong> ${ipAddress}</p>` : ''}
@@ -286,7 +286,7 @@ export class EmailService {
         <p>If this was you, you can safely ignore this email.</p>
         <p style="color: #EF4444;"><strong>If this wasn't you, please secure your account immediately by changing your password.</strong></p>
         <br>
-        <p>Best regards,<br>Khalil Investment Security Team</p>
+        <p>Best regards,<br>Aura Investment Security Team</p>
       </div>
     `;
 
