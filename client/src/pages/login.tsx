@@ -38,7 +38,7 @@ export default function Login({ onLogin, onNavigateToRegister, onNavigateToHome,
 
       <div className="flex-1 flex items-center justify-center px-4 py-12 relative z-10">
         <motion.div
-          initial={ { opacity: 0, y: 20, rotateY: -15, scale: 0.95 } }
+          initial={ { opacity: 0, y: 20, rotateY: -15, scale: 0.9 } }
           animate={ { opacity: 1, y: 0, rotateY: 0, scale: 1 } }
           transition={ { 
             duration: 1.2, 
@@ -46,9 +46,10 @@ export default function Login({ onLogin, onNavigateToRegister, onNavigateToHome,
             rotateY: { duration: 1.5, ease: "easeOut" }
           } }
           whileHover={ { 
-            scale: 1.02,
-            rotateY: 5,
-            transition: { duration: 0.4 }
+            scale: 1.05,
+            rotateY: 10,
+            rotateX: -5,
+            transition: { duration: 0.4, ease: "easeOut" }
           } }
           className="w-full max-w-md perspective-2000"
         >

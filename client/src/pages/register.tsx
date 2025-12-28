@@ -40,7 +40,7 @@ export default function Register({ onRegister, onNavigateToLogin, onNavigateToHo
 
       <div className="flex-1 flex items-center justify-center px-4 py-12 relative z-10">
         <motion.div
-          initial={ { opacity: 0, scale: 0.9, rotateY: 15, x: 20 } }
+          initial={ { opacity: 0, scale: 0.8, rotateY: 15, x: 50 } }
           animate={ { opacity: 1, scale: 1, rotateY: 0, x: 0 } }
           transition={ { 
             duration: 1.2, 
@@ -48,9 +48,10 @@ export default function Register({ onRegister, onNavigateToLogin, onNavigateToHo
             rotateY: { duration: 1.5, ease: "easeOut" }
           } }
           whileHover={ { 
-            scale: 1.02,
-            rotateY: -5,
-            transition: { duration: 0.4 }
+            scale: 1.05,
+            rotateY: -10,
+            rotateX: -5,
+            transition: { duration: 0.4, ease: "easeOut" }
           } }
           className="w-full max-w-md perspective-2000"
         >
